@@ -500,6 +500,37 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter_configs,
 		uavcan::uint16_t num_configs)
 {
+
+	/*
+	* Software initialization is started by setting INIT bit in FDCAN_CCCR register, either by
+	* software or by a hardware reset, or by going Bus_Off. While INIT bit in FDCAN_CCCR
+	* register is set, message transfer from and to the CAN bus is stopped, the status of the CAN
+	* bus output FDCAN_TX is recessive (high). The counters of the error management logic
+	* (EML) are unchanged. Setting INIT bit in FDCAN_CCCR does not change any configuration
+	* register. Clearing INIT bit in FDCAN_CCCR finishes the software initialization. Afterwards
+	* the bit stream processor (BSP) synchronizes itself to the data transfer on the CAN bus by
+	* waiting for the occurrence of a sequence of 11 consecutive recessive bits (Bus_Idle) before
+	* it can take part in bus activities and start the message transfer.
+	*/
+
+	/*
+	* Access to the FDCAN configuration registers is only enabled when both INIT bit in
+	* FDCAN_CCCR register and CCE bit in FDCAN_CCCR register are set
+	*/
+
+	/*
+	* CCE bit in FDCAN_CCCR register can only be set/cleared while INIT bit in FDCAN_CCCR
+	* is set. CCE bit in FDCAN_CCCR register is automatically cleared when INIT bit in
+	* FDCAN_CCCR is cleared
+	*/
+
+	/*
+	 * Up to 128 filter elements can be configured for 11-bit standard IDs. When accessing a
+	 * standard message ID filter element, its address is the filter list standard start address
+	 * FDCAN_SIDFC.FLSSA plus the index of the filter element (0 ... 127
+	*/
+
+
 	/*
 	 * The FDCAN controller handles standard ID and extended ID filters separately.
 	 * We must scan through the requested filter configurations, and group them by
@@ -509,21 +540,122 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 	// Filter config registers are protected; write access is only available
 	// when bit CCE and bit INIT of FDCAN_CCCR register are set to 1.
 
-	// CriticalSectionLocker lock;
+	uint32_t num_of_sid_filter = 0;
+	uint32_t num_of_xid_filter = 0;
 
-	// // Request Init mode, then wait for completion
-	// can_->CCCR |= FDCAN_CCCR_INIT;
-	// while ((can_->CCCR & FDCAN_CCCR_INIT) == 0) {}
+	if (num_configs <= NumFilters) {
 
-	// // Configuration Chane Enable
-	// can_->CCCR |= FDCAN_CCCR_CCE;
+		CriticalSectionLocker lock;
 
-	// /// TODO -------------------------
+		// // Request Init mode, then wait for completion
+		can_->CCCR |= FDCAN_CCCR_INIT;
+		while ((can_->CCCR & FDCAN_CCCR_INIT) == 0) {};
 
-	// // Leave Init mode
-	// can_->CCCR &= ~FDCAN_CCCR_INIT;
+		// // Configuration Chane Enable
+		can_->CCCR |= FDCAN_CCCR_CCE;
 
-	return 0;
+		// /// TODO -------------------------
+		// write the FLSSA field of the SIDFC register (Standard ID Filter Configuration register)
+		// can_->SIDFC |= FDCAN_SIDFC_FLSSA_Pos;
+
+		//write the FLESA field of the XIDFC register (Extended ID filter configuration register)
+		// can_->XIDFC |= FDCAN_XIDFC_FLESA_Pos;
+
+		for (uint8_t i = 0; i < NumFilters; i++) {
+
+			if (i < num_configs) {
+
+				// uint32_t id   = 0;
+				// uint32_t mask = 0;
+
+				// determine what type of filter is this:
+				// and add to the number of filter
+				const uavcan::CanFilterConfig *const cfg = filter_configs + i;
+
+				// extended message
+				if ((cfg->id & uavcan::CanFrame::FlagEFF) || !(cfg->mask & uavcan::CanFrame::FlagEFF)) {
+
+					volatile uint32_t* xid_filter_address = (uint32_t*)(( can_->XIDFC | FDCAN_XIDFC_FLESA_Msk) + 2*num_of_xid_filter);
+					num_of_xid_filter += 1;
+
+					uint32_t f0 = 0;
+					uint32_t f1 = 0;
+					// uint32_t id = 0;
+					// uint32_t mask = 0;
+
+					// id   = (cfg->id & uavcan::CanFrame::MaskExtID) << 3;
+					// mask = (cfg->mask & uavcan::CanFrame::MaskExtID) << 3;
+					// id |= fdcan::IDE;
+
+					// if (cfg->id & uavcan::CanFrame::FlagRTR) {
+					// 	id |= fdcan::RTR;
+					// }
+
+					// if (cfg->mask & uavcan::CanFrame::FlagEFF) {
+					// 	mask |= fdcan::EXID_MASK;
+					// }
+
+					// if (cfg->mask & uavcan::CanFrame::FlagRTR) {
+					// 	mask |= fdcan::RTR;
+					// }
+
+					// bit 31:29 EFEC[2:0], extended filter element configuration -> set Priority
+					f0 |= 1 << 29;
+
+					// bit 28:0 EFID[28:0], Extended Filter ID
+					f0 |= cfg->id;
+
+					// bit 31:30 EFEC[2:0], extended filter type -> classic filter
+					f1 |= 2 << 30;
+
+					// bit 28:0 EFID2[28:18], Extended Filter ID2
+					f1 |= cfg->mask;
+
+					*xid_filter_address = f0;
+					xid_filter_address += 1;
+					*(xid_filter_address) = f1;
+				}
+
+				// standard message
+				else {
+					volatile uint32_t* sid_filter_address = (uint32_t*)(( can_->SIDFC | FDCAN_SIDFC_FLSSA_Msk) + num_of_sid_filter);
+
+					num_of_sid_filter += 1;
+
+					uint32_t filter = 0;
+
+					// bit 31:30 SFT[1:0], standard filter type, -> classic
+					filter |= 2 << 30;
+
+					// bit 29:27 SFEC[2:0], standard filter element configuration, -> Set priority
+					filter |= (4 << 27);
+
+					// bit 26:16 SFID1[10:0], Standard Filter ID1
+					filter |= (cfg->id << 16);
+
+					// bit 15:0 SFID2[15:10], Standard Filter ID2
+					filter |= (cfg->mask << 10);
+
+					*sid_filter_address = filter;
+
+
+				}
+			}
+
+		}
+
+		// set the number of SID filters
+		can_->SIDFC |= (num_of_sid_filter << FDCAN_SIDFC_LSS_Pos );
+		// set the number of XID filters
+		can_->XIDFC |= (num_of_xid_filter << FDCAN_XIDFC_LSE_Pos );
+
+		// // Leave Init mode
+		can_->CCCR &= ~FDCAN_CCCR_INIT;
+		return 0;
+	}
+
+
+	return -ErrFilterNumConfigs;
 }
 
 bool CanIface::waitCCCRBitStateChange(uint32_t mask, bool target_state)
@@ -647,6 +779,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		   | FDCAN_IE_RF0FE   // Rx FIFO 0 FIFO full
 		   | FDCAN_IE_RF1NE   // Rx FIFO 1 new message
 		   | FDCAN_IE_RF1FE;  // Rx FIFO 1 FIFO full
+		//    | FDCAN_IE_HPME;
 
 	// Keep Rx interrupts on Line 0; move Tx to Line 1
 	can_->ILS = FDCAN_ILS_TCL;  // TC interrupt on line 1
