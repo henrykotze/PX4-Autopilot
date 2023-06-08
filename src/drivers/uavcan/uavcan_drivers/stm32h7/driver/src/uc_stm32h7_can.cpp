@@ -147,7 +147,21 @@ inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 		}
 
 		ifaces[iface_index]->handleTxInterrupt(utc_usec);
+
+	} else if ((fdcan::Can[iface_index]->IR & FDCAN_IR_BO) > 0) {
+
+		fdcan::Can[iface_index]->IR  = FDCAN_IR_BO;
+		ifaces[iface_index]->handleBusOff();
+
 	}
+}
+
+inline void handleUnknownInterrupt(uavcan::uint8_t iface_index)
+{
+	UAVCAN_ASSERT(iface_index < UAVCAN_STM32H7_NUM_IFACES);
+	fdcan::Can[iface_index]->IR  = FDCAN_IR_BO;
+	ifaces[iface_index]->handleBusOff();
+
 }
 
 inline void handleRxInterrupt(uavcan::uint8_t iface_index)
@@ -183,6 +197,11 @@ inline void handleRxInterrupt(uavcan::uint8_t iface_index)
 	} else if ((IR & (FDCAN_IR_RF1N | FDCAN_IR_RF1F)) > 0) {
 		fdcan::Can[iface_index]->IR = (FDCAN_IR_RF1N | FDCAN_IR_RF1F);
 		ifaces[iface_index]->handleRxInterrupt(1);
+
+	} else if ((IR & FDCAN_IR_BO) > 0) {
+
+		fdcan::Can[iface_index]->IR  = FDCAN_IR_BO;
+		ifaces[iface_index]->handleBusOff();
 
 	} else {
 		UAVCAN_ASSERT(0);
@@ -584,22 +603,6 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 					// uint32_t id = 0;
 					// uint32_t mask = 0;
 
-					// id   = (cfg->id & uavcan::CanFrame::MaskExtID) << 3;
-					// mask = (cfg->mask & uavcan::CanFrame::MaskExtID) << 3;
-					// id |= fdcan::IDE;
-
-					// if (cfg->id & uavcan::CanFrame::FlagRTR) {
-					// 	id |= fdcan::RTR;
-					// }
-
-					// if (cfg->mask & uavcan::CanFrame::FlagEFF) {
-					// 	mask |= fdcan::EXID_MASK;
-					// }
-
-					// if (cfg->mask & uavcan::CanFrame::FlagRTR) {
-					// 	mask |= fdcan::RTR;
-					// }
-
 					// bit 31:29 EFEC[2:0], extended filter element configuration -> set Priority
 					f0 |= 1 << 29;
 
@@ -779,45 +782,52 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		   | FDCAN_IE_RF0NE   // Rx FIFO 0 new message
 		   | FDCAN_IE_RF0FE   // Rx FIFO 0 FIFO full
 		   | FDCAN_IE_RF1NE   // Rx FIFO 1 new message
+		   <<< <<< < HEAD
 		   | FDCAN_IE_RF1FE;  // Rx FIFO 1 FIFO full
 	//    | FDCAN_IE_HPME;
+	== == == =
+		| FDCAN_IE_RF1FE  // Rx FIFO 1 FIFO full
+		| FDCAN_IE_BOE;   // bus off state
+	//    | FDCAN_IE_HPME;
+
+	>>> >>> > 0517d32fa4... Testing FW, working for Bus off state handling
 
 	// Keep Rx interrupts on Line 0; move Tx to Line 1
 	can_->ILS = FDCAN_ILS_TCL;  // TC interrupt on line 1
 
-	// Enable Tx buffer transmission interrupt
-	can_->TXBTIE = FDCAN_TXBTIE_TIE;
+// Enable Tx buffer transmission interrupt
+can_->TXBTIE = FDCAN_TXBTIE_TIE;
 
-	// Enable both interrupt lines
-	can_->ILE = FDCAN_ILE_EINT0 | FDCAN_ILE_EINT1;
+// Enable both interrupt lines
+can_->ILE = FDCAN_ILE_EINT0 | FDCAN_ILE_EINT1;
 
-	/*
-	 * Configure Message RAM
-	 *
-	 * The available 2560 words (10 kiB) of RAM are shared between both FDCAN
-	 * interfaces. It is up to us to ensure each interface has its own non-
-	 * overlapping region of RAM assigned to it by properly assignin the start and
-	 * end addresses for all regions of RAM.
-	 *
-	 * We will give each interface half of the available RAM.
-	 *
-	 * Rx buffers are only used in conjunction with acceptance filters; we don't
-	 * have any specific need for this, so we will only use Rx FIFOs.
-	 *
-	 * Each FIFO can hold up to 64 elements, where each element (for a classic CAN
-	 * 2.0B frame) is up to 4 words long (8 bytes data + header bits)
-	 *
-	 * Let's make use of the full 64 FIFO elements for FIFO0.  We have no need to
-	 * separate messages between FIFO0 and FIFO1, so ignore FIFO1 for simplicity.
-	 *
-	 * Note that the start addresses given to FDCAN are in terms of _words_, not
-	 * bytes, so when we go to read/write to/from the message RAM, there will be a
-	 * factor of 4 necessary in the address relative to the SA register values.
-	 */
+/*
+ * Configure Message RAM
+ *
+ * The available 2560 words (10 kiB) of RAM are shared between both FDCAN
+ * interfaces. It is up to us to ensure each interface has its own non-
+ * overlapping region of RAM assigned to it by properly assignin the start and
+ * end addresses for all regions of RAM.
+ *
+ * We will give each interface half of the available RAM.
+ *
+ * Rx buffers are only used in conjunction with acceptance filters; we don't
+ * have any specific need for this, so we will only use Rx FIFOs.
+ *
+ * Each FIFO can hold up to 64 elements, where each element (for a classic CAN
+ * 2.0B frame) is up to 4 words long (8 bytes data + header bits)
+ *
+ * Let's make use of the full 64 FIFO elements for FIFO0.  We have no need to
+ * separate messages between FIFO0 and FIFO1, so ignore FIFO1 for simplicity.
+ *
+ * Note that the start addresses given to FDCAN are in terms of _words_, not
+ * bytes, so when we go to read/write to/from the message RAM, there will be a
+ * factor of 4 necessary in the address relative to the SA register values.
+ */
 
-	// Location of this interface's message RAM - address in CPU memory address
-	// and relative address (in words) used for configuration
-	const uint32_t iface_ram_base = (2560 / 2) * self_index_;
+// Location of this interface's message RAM - address in CPU memory address
+// and relative address (in words) used for configuration
+const uint32_t iface_ram_base = (2560 / 2) * self_index_;
 	const uint32_t gl_ram_base = SRAMCAN_BASE;
 	uint32_t ram_offset = iface_ram_base;
 
@@ -886,6 +896,28 @@ void CanIface::handleTxInterrupt(const uavcan::uint64_t utc_usec)
 	}
 
 	pollErrorFlagsFromISR();
+}
+
+
+void CanIface::handleBusOff()
+{
+
+	// // Request Init mode, then wait for completion
+	// can_->CCCR |= FDCAN_CCCR_INIT;
+	// while ((can_->CCCR & FDCAN_CCCR_INIT) == 0) {};
+
+	/*
+	 * The bus off recovery sequence consists of 128 occurrences of 11 consecutive recessive bits. MCAN controllers
+	 * start sensing the bus looking for the recovery sequence when the INIT bit of control register (CCCR) is reset by
+	 * the user. The bus off recovery sequence cannot be shortened by setting or resetting CCCR[INIT].
+	 * Summarizing, if the device raises a bus off condition, CCCR[INIT] is set stopping all bus activities. Once
+	 * CCCR[INIT] has been cleared again by the software, the device will then wait for 129 occurrences of bus idle
+	 * (129 x 11 consecutive recessive bits) before resuming on normal operation. At the end of the bus off recovery
+	 * sequence, the error management counters will be reset, and so PSR.BO, ECR.TEC, and ECR.REC.
+	*/
+
+	can_->CCCR &= ~FDCAN_CCCR_INIT;
+
 }
 
 void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index)
@@ -1263,7 +1295,8 @@ extern "C"
 			uavcan_stm32h7::handleTxInterrupt(0);
 
 		} else {
-			PANIC();
+			uavcan_stm32h7::handleUnknownInterrupt(0);
+			// PANIC();
 		}
 
 		return 0;
@@ -1282,7 +1315,9 @@ extern "C"
 			uavcan_stm32h7::handleTxInterrupt(1);
 
 		} else {
-			PANIC();
+
+			uavcan_stm32h7::handleUnknownInterrupt(1);
+			// PANIC();
 		}
 
 		return 0;
