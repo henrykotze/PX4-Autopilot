@@ -774,52 +774,45 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		   | FDCAN_IE_RF0NE   // Rx FIFO 0 new message
 		   | FDCAN_IE_RF0FE   // Rx FIFO 0 FIFO full
 		   | FDCAN_IE_RF1NE   // Rx FIFO 1 new message
-		   <<< <<< < HEAD
-		   | FDCAN_IE_RF1FE;  // Rx FIFO 1 FIFO full
-	//    | FDCAN_IE_HPME;
-	== == == =
-		| FDCAN_IE_RF1FE  // Rx FIFO 1 FIFO full
-		| FDCAN_IE_BOE;   // bus off state
-	//    | FDCAN_IE_HPME;
-
-	>>> >>> > 0517d32fa4... Testing FW, working for Bus off state handling
+		   | FDCAN_IE_RF1FE  // Rx FIFO 1 FIFO full
+		   | FDCAN_IE_BOE;   // bus off state
 
 	// Keep Rx interrupts on Line 0; move Tx to Line 1
 	can_->ILS = FDCAN_ILS_TCL;  // TC interrupt on line 1
 
-// Enable Tx buffer transmission interrupt
-can_->TXBTIE = FDCAN_TXBTIE_TIE;
+	// Enable Tx buffer transmission interrupt
+	can_->TXBTIE = FDCAN_TXBTIE_TIE;
 
-// Enable both interrupt lines
-can_->ILE = FDCAN_ILE_EINT0 | FDCAN_ILE_EINT1;
+	// Enable both interrupt lines
+	can_->ILE = FDCAN_ILE_EINT0 | FDCAN_ILE_EINT1;
 
-/*
- * Configure Message RAM
- *
- * The available 2560 words (10 kiB) of RAM are shared between both FDCAN
- * interfaces. It is up to us to ensure each interface has its own non-
- * overlapping region of RAM assigned to it by properly assignin the start and
- * end addresses for all regions of RAM.
- *
- * We will give each interface half of the available RAM.
- *
- * Rx buffers are only used in conjunction with acceptance filters; we don't
- * have any specific need for this, so we will only use Rx FIFOs.
- *
- * Each FIFO can hold up to 64 elements, where each element (for a classic CAN
- * 2.0B frame) is up to 4 words long (8 bytes data + header bits)
- *
- * Let's make use of the full 64 FIFO elements for FIFO0.  We have no need to
- * separate messages between FIFO0 and FIFO1, so ignore FIFO1 for simplicity.
- *
- * Note that the start addresses given to FDCAN are in terms of _words_, not
- * bytes, so when we go to read/write to/from the message RAM, there will be a
- * factor of 4 necessary in the address relative to the SA register values.
- */
+	/*
+	 * Configure Message RAM
+	 *
+	 * The available 2560 words (10 kiB) of RAM are shared between both FDCAN
+	 * interfaces. It is up to us to ensure each interface has its own non-
+	 * overlapping region of RAM assigned to it by properly assignin the start and
+	 * end addresses for all regions of RAM.
+	 *
+	 * We will give each interface half of the available RAM.
+	 *
+	 * Rx buffers are only used in conjunction with acceptance filters; we don't
+	 * have any specific need for this, so we will only use Rx FIFOs.
+	 *
+	 * Each FIFO can hold up to 64 elements, where each element (for a classic CAN
+	 * 2.0B frame) is up to 4 words long (8 bytes data + header bits)
+	 *
+	 * Let's make use of the full 64 FIFO elements for FIFO0.  We have no need to
+	 * separate messages between FIFO0 and FIFO1, so ignore FIFO1 for simplicity.
+	 *
+	 * Note that the start addresses given to FDCAN are in terms of _words_, not
+	 * bytes, so when we go to read/write to/from the message RAM, there will be a
+	 * factor of 4 necessary in the address relative to the SA register values.
+	 */
 
 // Location of this interface's message RAM - address in CPU memory address
 // and relative address (in words) used for configuration
-const uint32_t iface_ram_base = (2560 / 2) * self_index_;
+	const uint32_t iface_ram_base = (2560 / 2) * self_index_;
 	const uint32_t gl_ram_base = SRAMCAN_BASE;
 	uint32_t ram_offset = iface_ram_base;
 
