@@ -549,6 +549,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 
 		// // Request Init mode, then wait for completion
 		can_->CCCR |= FDCAN_CCCR_INIT;
+
 		while ((can_->CCCR & FDCAN_CCCR_INIT) == 0) {};
 
 		// // Configuration Chane Enable
@@ -575,7 +576,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 				// extended message
 				if ((cfg->id & uavcan::CanFrame::FlagEFF) || !(cfg->mask & uavcan::CanFrame::FlagEFF)) {
 
-					volatile uint32_t* xid_filter_address = (uint32_t*)(( can_->XIDFC | FDCAN_XIDFC_FLESA_Msk) + 2*num_of_xid_filter);
+					volatile uint32_t *xid_filter_address = (uint32_t *)((can_->XIDFC | FDCAN_XIDFC_FLESA_Msk) + 2 * num_of_xid_filter);
 					num_of_xid_filter += 1;
 
 					uint32_t f0 = 0;
@@ -618,7 +619,7 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 
 				// standard message
 				else {
-					volatile uint32_t* sid_filter_address = (uint32_t*)(( can_->SIDFC | FDCAN_SIDFC_FLSSA_Msk) + num_of_sid_filter);
+					volatile uint32_t *sid_filter_address = (uint32_t *)((can_->SIDFC | FDCAN_SIDFC_FLSSA_Msk) + num_of_sid_filter);
 
 					num_of_sid_filter += 1;
 
@@ -645,9 +646,9 @@ uavcan::int16_t CanIface::configureFilters(const uavcan::CanFilterConfig *filter
 		}
 
 		// set the number of SID filters
-		can_->SIDFC |= (num_of_sid_filter << FDCAN_SIDFC_LSS_Pos );
+		can_->SIDFC |= (num_of_sid_filter << FDCAN_SIDFC_LSS_Pos);
 		// set the number of XID filters
-		can_->XIDFC |= (num_of_xid_filter << FDCAN_XIDFC_LSE_Pos );
+		can_->XIDFC |= (num_of_xid_filter << FDCAN_XIDFC_LSE_Pos);
 
 		// // Leave Init mode
 		can_->CCCR &= ~FDCAN_CCCR_INIT;
@@ -779,7 +780,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 		   | FDCAN_IE_RF0FE   // Rx FIFO 0 FIFO full
 		   | FDCAN_IE_RF1NE   // Rx FIFO 1 new message
 		   | FDCAN_IE_RF1FE;  // Rx FIFO 1 FIFO full
-		//    | FDCAN_IE_HPME;
+	//    | FDCAN_IE_HPME;
 
 	// Keep Rx interrupts on Line 0; move Tx to Line 1
 	can_->ILS = FDCAN_ILS_TCL;  // TC interrupt on line 1
