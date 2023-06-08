@@ -156,14 +156,6 @@ inline void handleTxInterrupt(uavcan::uint8_t iface_index)
 	}
 }
 
-inline void handleUnknownInterrupt(uavcan::uint8_t iface_index)
-{
-	UAVCAN_ASSERT(iface_index < UAVCAN_STM32H7_NUM_IFACES);
-	fdcan::Can[iface_index]->IR  = FDCAN_IR_BO;
-	ifaces[iface_index]->handleBusOff();
-
-}
-
 inline void handleRxInterrupt(uavcan::uint8_t iface_index)
 {
 	UAVCAN_ASSERT(iface_index < UAVCAN_STM32H7_NUM_IFACES);
@@ -1295,8 +1287,7 @@ extern "C"
 			uavcan_stm32h7::handleTxInterrupt(0);
 
 		} else {
-			uavcan_stm32h7::handleUnknownInterrupt(0);
-			// PANIC();
+			PANIC();
 		}
 
 		return 0;
@@ -1315,9 +1306,7 @@ extern "C"
 			uavcan_stm32h7::handleTxInterrupt(1);
 
 		} else {
-
-			uavcan_stm32h7::handleUnknownInterrupt(1);
-			// PANIC();
+			PANIC();
 		}
 
 		return 0;
