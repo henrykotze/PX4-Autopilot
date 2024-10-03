@@ -39,11 +39,11 @@ fi
 #
 # Load parameters.
 #
-param select $PARAM_FILE
-if ! param load
-then
-	param reset_all
-fi
+# param select $PARAM_FILE
+# if ! param load
+# then
+# 	param reset_all
+# fi
 
 #
 # Optional board architecture defaults: rc.board_arch_defaults
