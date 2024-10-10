@@ -20,6 +20,7 @@ set R /
 # Print full system version.
 #
 ver all
+set PARAM_FILE /fs/mtd_params
 
 if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
 then
@@ -36,14 +37,12 @@ then
 	set PARAM_FILE /mnt/qspi/params
 fi
 
-#
 # Load parameters.
-#
-# param select $PARAM_FILE
-# if ! param load
-# then
-# 	param reset_all
-# fi
+param select $PARAM_FILE
+if ! param load
+then
+	param reset_all
+fi
 
 #
 # Optional board architecture defaults: rc.board_arch_defaults
