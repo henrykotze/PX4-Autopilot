@@ -20,7 +20,6 @@ set R /
 # Print full system version.
 #
 ver all
-set PARAM_FILE /fs/mtd_params
 
 if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
 then
