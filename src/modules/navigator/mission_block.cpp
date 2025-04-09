@@ -199,6 +199,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_waypoint_position_reached = true;
 			}
 
+			/* in gps denied environment we make use of the local position estimate*/
+			if(_navigator->get_local_position()->z <
+			(-1.0f * takeoff_alt + altitude_acceptance_radius)) {
+				_waypoint_position_reached = true;
+			}
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			/* fixed-wing takeoff is reached once the vehicle has exceeded the takeoff altitude */
