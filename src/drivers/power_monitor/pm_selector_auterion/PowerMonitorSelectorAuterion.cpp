@@ -324,7 +324,7 @@ int PowerMonitorSelectorAuterion::start_pm(const uint8_t bus_number, const uint1
 	};
 
 	int status = PX4_ERROR;
-	int pid = exec_builtin(start_command, (char **)start_argv, NULL, 0);
+	int pid = exec_builtin(start_command, (char **)start_argv, NULL);
 
 	if (pid != -1) {
 		waitpid(pid, &status, WUNTRACED);
