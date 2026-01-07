@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * board specific early startup code.  This file implements the
+ * PX4FMU-specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -58,39 +58,56 @@
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
-#include <nuttx/analog/adc.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
+#include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
 
 
-#include <chip.h>
+#include <nuttx/spi/spi_transfer.h>
+
+
 #include "board_config.h"
+//#include "esp32_rtc.h"
 
 #include <arch/board/board.h>
-#include <px4_platform_common/px4_manifest.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 
-#include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
-#define LEDC_LS_SIG_OUT0_IDX 79
+#include <drivers/drv_pwm_output.h>
 
-#include "esp32_board_wlan_setup.h"
+#include "esp32_wifi_adapter.h"
+
+#include "espressif/esp_spiflash.h"
+#include "espressif/esp_spiflash_mtd.h"
+
+#include "esp32_board_wlan.h"
 #ifdef CONFIG_ESP32_SPIFLASH
-#include "esp32_board_spiflash_setup.h"
+#include "esp32_spiflash.h"
+#endif
+
+#ifdef CONFIG_ESP32_LEDC
+#  include "esp32_ledc.h"
 #endif
 
 #include "esp32_rt_timer.h"
+
+#ifdef CONFIG_ESP32_TIMER
+// #  include "esp32_board_tim.h"
+#endif
+
+int esp_rtc_clk_get_cpu_freq(void);
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
+extern int sercon_main(int c, char **argv);
 /**
  * Ideally we'd be able to get these from arm_internal.h,
  * but since we want to be able to disable the NuttX use
@@ -110,6 +127,30 @@ __END_DECLS
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+
+static void esp32_wifi_init(void)
+{
+    int ret =0;
+
+#ifdef CONFIG_ESP32_RT_TIMER
+  ret = esp32_rt_timer_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "Failed to initialize RT timer: %d\n", ret);
+    }
+#endif
+
+
+  ret = board_wlan_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize wireless subsystem=%d\n",
+             ret);
+    }
+}
+
+
 /************************************************************************************
  * Name: board_peripheral_reset
  *
@@ -118,7 +159,12 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
-	UNUSED(ms);
+
+	// Wait for the peripheral rail to reach GND.
+	usleep(ms * 1000);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
+
+
 }
 
 /************************************************************************************
@@ -134,45 +180,14 @@ __EXPORT void board_peripheral_reset(int ms)
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-	// Configure the GPIO pins to outputs and keep them low.
-	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
-		esp32_gpio_matrix_out(timer_io_channels[i].gpio_out, LEDC_LS_SIG_OUT0_IDX + timer_io_channels[i].timer_channel, 0, 0);
-	}
 
-	/*
-	 * On resets invoked from system (not boot) insure we establish a low
-	 * output state (discharge the pins) on PWM pins before they become inputs.
-	 */
-
-	if (status >= 0) {
-		up_mdelay(400);
-	}
 }
 
 /************************************************************************************
- * Name: board_read_VBUS_state
+ * Name: stm32_boardinitialize
  *
  * Description:
- *   All boards must provide a way to read the state of VBUS, this my be simple
- *   digital input on a GPIO. Or something more complicated like a Analong input
- *   or reading a bit from a USB controller register.
- *
- * Returns -  0 if connected.
- *
- ************************************************************************************/
-
-int board_read_VBUS_state(void)
-{
-	// return BOARD_ADC_USB_CONNECTED ? 0 : 1;
-	return 0;
-}
-
-/************************************************************************************
- * Name: esp32_board_initialize
- *
- * Description:
- *   All architectures must provide the following entry point. This entry point
+ *   All STM32 architectures must provide the following entry point.  This entry point
  *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
@@ -181,13 +196,8 @@ int board_read_VBUS_state(void)
 __EXPORT void
 esp32_board_initialize(void)
 {
-	// /* Reset all PWM to Low outputs */
+	// Reset all PWM to Low outputs.
 	board_on_reset(-1);
-
-	// /* configure LEDs */
-	board_autoled_initialize();
-	up_mdelay(2);
-	esp32_spiinitialize();
 
 }
 
@@ -215,7 +225,6 @@ esp32_board_initialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-
 #ifdef CONFIG_ESP32_SPI2
 static struct spi_dev_s *spi2;
 #endif
@@ -224,34 +233,77 @@ static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi3;
 #endif
 
+void test_poll(void)
+{
+	static uint8_t cnt = 0;
+
+	if (cnt % 2 == 0) {
+		led_off(LED_BLUE);
+
+	} else {
+		led_on(LED_BLUE);
+	}
+
+	cnt++;
+	//hrt_abstime time = hrt_absolute_time();
+	//syslog(LOG_INFO,"%lld %lld\n",time,time/1000/1000);
+}
+
+int board_read_VBUS_state(void)
+{
+	return 1;
+}
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-	px4_platform_init();
 
-	/* configure the DMA allocator */				// Needs to be figured out
+	syslog(LOG_INFO, "\n[boot] CPU SPEED %d\n", esp_rtc_clk_get_cpu_freq());
 
-	if (board_dma_alloc_init() < 0) {
-		syslog(LOG_ERR, "DMA alloc FAILED\n");
-	}
+	// led_init();
+
+	// led_on(LED_RED);
+	// led_on(LED_GREEN);
+
+	// drv_led_start();
+
+	esp32_wifi_init();
+
+	usleep(1000);
+
+	esp32_spiinitialize();
+
+	//sercon_main(0, NULL);
 
 
-	/* initial LED state */
-	drv_led_start();
+	uint8_t recv_spi[4] = {0};
+	uint8_t send_spi[4] = {0};
 
+
+	// Configure SPI-based devices.
 #ifdef CONFIG_ESP32_SPI2
 	spi2 = esp32_spibus_initialize(2);
 
 	if (!spi2) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
-		// led_on(LED_RED);
+		//led_on(LED_RED);
 	}
 
 	// Default SPI1 to 10MHz
 	SPI_SETFREQUENCY(spi2, 10000000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	up_udelay(20);
+	usleep(100);
+	SPI_EXCHANGE(spi2,send_spi,recv_spi,2);
+	usleep(100);
+
+
+// 	int ret = spi_register(spi2, 2);
+//   if (ret < 0)
+//     {
+//       syslog(LOG_ERR, "Failed to register /dev/spi%d: %d\n", 2, ret);
+//       esp32_spibus_uninitialize(spi2);
+//     }
+
 
 #endif
 
@@ -260,41 +312,47 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!spi3) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
-		// led_on(LED_RED);
+		//led_on(LED_RED);
 	}
 
-	/* Now bind the SPI interface to the MMCSD driver */
-	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
-
-	if (result != OK) {
-		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
-	}
+	SPI_SETFREQUENCY(spi3, 10 * 1000 * 1000);
+	SPI_SETBITS(spi3, 8);
+	SPI_SETMODE(spi3, SPIDEV_MODE3);
+	usleep(10);
+	SPI_EXCHANGE(spi3,send_spi,recv_spi,2);
+	usleep(100);
 
 #endif
-	int ret = esp32_spiflash_init();
+	int ret =0;
 
-	if (ret) {
-		syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
+
+
+#ifdef CONFIG_ESP32_SPIFLASH
+	// esp32 flash mtd init.
+	//int ret = 0;
+	FAR struct mtd_dev_s *mtd;
+	ret = esp_spiflash_init();
+	mtd = esp_spiflash_alloc_mtdpart(0x310000, 0x10000);
+	if (!mtd) {
+		ferr("ERROR: Failed to alloc MTD partition of SPI Flash\n");
+		return -ENOMEM;
 	}
+	ret = register_mtddriver("/fs/mtd_params", mtd, 0777, NULL);
+	if (ret < 0) {
+		ferr("ERROR: Failed to register MTD: %d\n", ret);
+		return ret;
+	}
+#endif
 
-	esp32_rt_timer_init();
+	usleep(100000);
 
-	led_on(GPIO_LED_BLUE);
-	up_mdelay(100);
-	led_off(GPIO_LED_BLUE);
-	up_mdelay(100);
-	led_on(GPIO_LED_BLUE);
-	up_mdelay(100);
-	led_off(GPIO_LED_BLUE);
-
-
-
-	/* Configure the HW based on the manifest */
+	syslog(LOG_INFO, "PX4 PLATFORM INIT PREPARE");
+	px4_platform_init();
+	syslog(LOG_INFO, "PX4 PLATFORM INIT OK");
 	px4_platform_configure();
 
-	up_mdelay(1000);
-
-	board_wlan_init();
+	// led_off(LED_RED);
+	// led_off(LED_GREEN);
 
 	return OK;
 }
