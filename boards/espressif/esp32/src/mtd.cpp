@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,33 +30,31 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <nuttx/config.h>
-#include <board_config.h>
 
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
-//                                                                      KiB BS    nB
-static const px4_mft_device_t flash = {             // 24AA64FT on Base  8K 32 X 256
-	.bus_type = px4_mft_device_t::ONCHIP
+//                                                              KiB BS    nB
+static const px4_mft_device_t spi3 = {             		// FM25V01A on FMUM 16K
+	.bus_type = px4_mft_device_t::ONCHIP,
+	//.devid    = SPIDEV_FLASH(0)
 };
 
-
-static const px4_mtd_entry_t fmu_flash = {
-	.device = &flash,
+static const px4_mtd_entry_t fmum_fram = {
+	.device = &spi3,
 	.npart = 1,
 	.partd = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 1
+			.nblocks = 32
 		}
 	},
 };
 
 static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 1,
-	.entries = {
-		&fmu_flash,
+	.nconfigs = 1,
+	.entries  = {
+		&fmum_fram
 	}
 };
 

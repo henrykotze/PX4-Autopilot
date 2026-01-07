@@ -16,6 +16,8 @@ choice
 		bool "S32K3XX"
 	config ARCH_CHIP_RP2040
 		bool "RP2040"
+	config ARCH_CHIP_ESP32
+		bool "ESP32"
 endchoice
 
 config BOARD_PWM_FREQ

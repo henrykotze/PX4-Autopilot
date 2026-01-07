@@ -36,12 +36,12 @@
 
 #include <stdint.h>
 
-#include "hardware/esp32_tim.h"
-#include "hardware/esp32_gpio.h"
-#include "hardware/esp32_soc.h"
+// #include "hardware/esp32_tim.h"
+// #include "hardware/esp32_gpio.h"
+// #include "hardware/esp32_soc.h"
 
 #include <px4_platform_common/constexpr_util.h>
-
+#define DR_REG_PWM1_BASE                        0x6002C000
 /*
  * Timers
  */
@@ -74,7 +74,7 @@ struct TimerChannel {
 static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 {
 	switch (timer) {
-	case Timer::Timer0: return DR_REG_PWM_BASE + 0x04;
+	case Timer::Timer0: return DR_REG_PWM1_BASE + 0x04;
 
 	case Timer::Timer1: return DR_REG_PWM1_BASE + 0x04;
 

@@ -42,6 +42,8 @@ __BEGIN_DECLS
 #include <esp32_i2c.h>
 #include <nuttx/mtd/mtd.h>
 #include <esp32_spiflash.h>
+#include <espressif/esp_spiflash_mtd.h>
+#include <espressif/esp_spiflash.h>
 
 #include <esp32_gpio.h>
 
@@ -111,7 +113,7 @@ int esp32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool 
 #define px4_arch_gpiowrite(pinset, value)		esp32_gpiowrite(pinset & GPIO_NUM_MASK, value)
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)	esp32_gpiosetevent(pinset,r,f,e,fp,a)
 
-#define px4_arch_mtd_dev()				esp32_spiflash_get_mtd()
+#define px4_arch_mtd_dev()				esp_spiflash_get_mtd()
 
 #define px4_spibus_initialize(bus_num_1based)   esp32_spibus_initialize(bus_num_1based)
 

@@ -37,6 +37,10 @@ endif()
 
 include(cygwin_cygpath)
 
+if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+	add_link_options(-u esp_system_include_startup_funcs)
+endif()
+
 add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
@@ -172,7 +176,6 @@ if (NOT CONFIG_BUILD_FLAT)
 
 		-fno-exceptions
 		-fno-rtti
-
 		-Wl,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}memory.ld,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}kernel-space.ld
 
 		-Wl,-Map=${PX4_CONFIG}_kernel.map
@@ -251,8 +254,11 @@ else()
 
 if(CONFIG_ARCH_CHIP_ESP32)
 
+if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+	message("Building for ESP32 with SIMPLE_BOOT")
+
 	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
-	set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
+	# set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
 
 	set(NUTTX_STARTUP_OBJS
 	${PX4_STARTUP_DIR}/xtensa_vectors.o
@@ -261,24 +267,13 @@ if(CONFIG_ARCH_CHIP_ESP32)
 	${PX4_STARTUP_DIR}/xtensa_int_handlers.o
 	${PX4_STARTUP_DIR}/xtensa_user_handler.o
 	${PX4_STARTUP_DIR}/xtensa_initialize.o
-	${PX4_STARTUP_DIR}/xtensa_initialstate.o
+	# ${PX4_STARTUP_DIR}/xtensa_initialstate.o
 	${PX4_STARTUP_DIR}/esp32_start.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
+	${PX4_STARTUP_DIR}/esp32_cpustart.o
+	# ${PX4_STARTUP_DIR}/esp32_clockconfig.o
 	)
 
-	set(NUTTX_NETWORK_LIB
-	libbtdm_app.a
-	libcoexist.a
-	libcore.a
-	libespnow.a
-	libnet80211.a
-	libphy.a
-	libpp.a
-	librtc.a
-	libsmartconfig.a
-	libwapi.a
-	libwpa_supplicant.a
-	)
 	execute_process(COMMAND touch ${NUTTX_STARTUP_OBJS}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR})
 	set_source_files_properties(
@@ -294,17 +289,101 @@ if(CONFIG_ARCH_CHIP_ESP32)
 			drivers_board
 			arch_hrt
 			arch_board_reset
-			-L${WIRELESS_LIB}
-			-Wl,--start-group
-			${NUTTX_NETWORK_LIB}
-			-Wl,--end-group
 	)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
-	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_net)
-	target_link_libraries(nuttx_net INTERFACE nuttx_mm)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
+	target_link_libraries(px4 PRIVATE
+		-nostartfiles
+		# --entry=esp32_start
+		-nodefaultlibs
+		-nostdlib
+		-nostdinc++
+		-mlongcalls
+		-fno-exceptions
+		-fno-rtti
+		-Wl,--cref
+		-Wl,-wrap,bootloader_print_banner
+		# -L${WIRELESS_LIB}
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libgcc.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
+		# -L${NUTTX_CONFIG_DIR_CYG}/scripts
+		-Wl,-Map=${PX4_CONFIG}.map
+		-Wl,--gc-sections
+
+		-Wl,--start-group
+			${NUTTX_STARTUP_OBJS}
+			${nuttx_libs}
+		# /home/henry/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/14.2.0/esp32/libgcc.a
+		# /home/henry/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/xtensa-esp-elf/lib/esp32/libm.a
+		-Wl,--end-group
+		m
+		gcc
+		)
+
+		if(NOT USE_LD_GOLD)
+			target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
+		endif()
+
+		target_link_libraries(px4 PRIVATE ${module_libraries})
+		if(config_romfs_root)
+			add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
+			target_link_libraries(px4 PRIVATE romfs)
+		endif()
+		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
+			COMMAND esptool.py --chip esp32 elf2image --ram-only-header -fs 8MB -fm dio -ff "40m" -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
+			COMMAND du ${PX4_BINARY_OUTPUT} -h
+			DEPENDS px4
+		)
+else()
+	message("Building for ESP32 with Legacy bootloader")
+
+	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
+	# set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
+
+	set(NUTTX_STARTUP_OBJS
+	${PX4_STARTUP_DIR}/xtensa_vectors.o
+	${PX4_STARTUP_DIR}/xtensa_window_vector.o
+	${PX4_STARTUP_DIR}/xtensa_windowspill.o
+	${PX4_STARTUP_DIR}/xtensa_int_handlers.o
+	${PX4_STARTUP_DIR}/xtensa_user_handler.o
+	${PX4_STARTUP_DIR}/xtensa_initialize.o
+	${PX4_STARTUP_DIR}/xtensa_initialstate.o
+	${PX4_STARTUP_DIR}/esp32_start.o
+	${PX4_STARTUP_DIR}/esp32_wdt.o
+	)
+
+	execute_process(COMMAND touch ${NUTTX_STARTUP_OBJS}
+	WORKING_DIRECTORY ${PX4_SOURCE_DIR})
+	set_source_files_properties(
+		${NUTTX_STARTUP_OBJS}
+		PROPERTIES
+		EXTERNAL_OBJECT true
+		GENERATED true)
+
+	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
+
+	target_link_libraries(nuttx_arch
+			INTERFACE
+			drivers_board
+			arch_hrt
+			arch_board_reset
+	)
+
+	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
+	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 	target_link_libraries(px4 PRIVATE
 		-nostartfiles
 		-nodefaultlibs
@@ -314,18 +393,24 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-fno-exceptions
 		-fno-rtti
 		-Wl,--cref
-		-L${WIRELESS_LIB}
-
-		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_rom.ld
+		# -L${WIRELESS_LIB}
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}legacy_sections.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libgcc.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
 		-Wl,-Map=${PX4_CONFIG}.map
+		-Wl,--warn-common
 		-Wl,--gc-sections
 
 		-Wl,--start-group
-			${nuttx_libs}
 			${NUTTX_STARTUP_OBJS}
-			${NUTTX_NETWORK_LIB}
+			${nuttx_libs}
 		-Wl,--end-group
 
 		m
@@ -342,10 +427,16 @@ if(CONFIG_ARCH_CHIP_ESP32)
 			target_link_libraries(px4 PRIVATE romfs)
 		endif()
 		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-			COMMAND esptool --chip esp32 elf2image -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
+			COMMAND esptool.py --chip esp32 elf2image -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
 			COMMAND du ${PX4_BINARY_OUTPUT} -h
 			DEPENDS px4
 		)
+
+
+
+
+
+endif()
 else()
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams

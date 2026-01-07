@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,17 @@
 ############################################################################
 
 add_library(drivers_board
-	i2c.cpp
 	init.c
 	led.c
+	i2c.cpp
 	spi.cpp
 	timer_config.cpp
-	# usb.c
-	esp32_board_spiflash.c
-	esp32_board_wlan_setup.c
+	#esp32_board_usb.c
+	# esp32_ledc.c
+	#esp32_board_tim.c
+	esp32_board_wlan.c
+	#esp32_board_sdmmc.c
+	#esp32_adc.c
 	mtd.cpp
 )
 
@@ -51,4 +54,12 @@ target_link_libraries(drivers_board
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
 		px4_layer
+)
+
+target_include_directories(drivers_board PRIVATE
+
+# ../../../../platforms/nuttx/NuttX/nuttx/arch/xtensa/src/esp32/esp-hal-3rdparty/components/soc/esp32/include/
+# ../../../../platforms/nuttx/NuttX/nuttx/arch/xtensa/src/esp32/esp-hal-3rdparty/components/esp_common/include/
+# ../../../../platforms/nuttx/NuttX/nuttx/arch/xtensa/src/esp32/esp-hal-3rdparty/nuttx/esp32/include/
+
 )
