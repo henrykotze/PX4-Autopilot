@@ -58,6 +58,9 @@ else ifeq ($(CONFIG_ARCH_ARMV8R),y)
   include $(TOPDIR)/arch/arm/src/armv8-r/Toolchain.defs
 else ifeq ($(CONFIG_ARCH_ARMV6M),y)
   include $(TOPDIR)/arch/arm/src/armv6-m/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_XTENSA),y)
+  include $(TOPDIR)/arch/xtensa/src/lx7/Toolchain.defs
+  ARCHDEFINES += -D__NuttX__
 endif
 
 # Replace each space separated word in the string that contains "cygdrive"
@@ -124,6 +127,7 @@ FLAGS = $(MAXOPTIMIZATION) -g2 \
 	-Wno-builtin-declaration-mismatch \
 	-Wno-cpp \
 	-Wno-format \
+	-Wno-missing-braces \
 	-Wno-format-truncation \
 	-Wno-maybe-uninitialized \
 	-Wno-missing-field-initializers \
@@ -146,6 +150,7 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 endif
 
 CFLAGS = $(ARCHINCLUDES) \
+	 $(ARCHDEFINES) \
 	-std=gnu11 \
 	${CMAKE_C_FLAGS} \
 	$(FLAGS) \
@@ -165,6 +170,7 @@ CFLAGS = $(ARCHINCLUDES) \
 	${CMAKE_C_COMP_DEP_FLAGS}
 
 CXXFLAGS = $(ARCHXXINCLUDES) \
+	 $(ARCHDEFINES) \
 	-std=c++14 \
 	-nostdinc++ \
 	${CMAKE_CXX_FLAGS} \
