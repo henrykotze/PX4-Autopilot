@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * board internal definitions
+ * PX4FMUv4 internal definitions
  */
 
 #pragma once
@@ -47,62 +47,85 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+/* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs */
-#define GPIO_LED_BLUE	4 | GPIO_OUTPUT
 
-/* GPIOs available*/
-#define GPIO_1	4 | GPIO_OUTPUT
-#define GPIO_2	4 | GPIO_OUTPUT
-#define GPIO_3	4 | GPIO_OUTPUT
-#define GPIO_4	4 | GPIO_OUTPUT
+// #define GPIO_LED_RED                 (GPIO_OUTPUT|34)
+//#define GPIO_LED_GREEN               (GPIO_OUTPUT|12)
+#define GPIO_LED_BLUE                (GPIO_OUTPUT|9)
+// #define GPIO_LED_SAFETY              GPIO_LED_BLUE
 
-#define PX4_NUMBER_I2C_BUSES 2
+#define BOARD_HAS_CONTROL_STATUS_LEDS 1
+// #define BOARD_OVERLOAD_LED     LED_RED
+#define BOARD_ARMED_LED        LED_BLUE
+// #define BOARD_ARMED_STATE_LED  LED_RED
 
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 2
 
-/*
- * ADC channels
- *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
+#define HRT_TIMER                    0  /* use timer 3 for the HRT */
+
+#define BOARD_SPI_BUS_MAX_BUS_ITEMS 4
+
+
+/**
+ * ADC channels:
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver.
  */
-#define ADC_CHANNELS (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3)	// Change this later based on the adc channels actually used
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  1			// Corresponding GPIO 27. Used in init.c for disabling GPIO_IE
-#define ADC_BATTERY_CURRENT_CHANNEL  2			// Corresponding GPIO 28. Used in init.c for disabling GPIO_IE
-#define ADC_RC_RSSI_CHANNEL          0
+#define ADC_BATTERY_VOLTAGE_CHANNEL   4
+#define ADC_BATTERY_CURRENT_CHANNEL  2
 
-/* High-resolution timer */
-/*
- * For wifi to work, it needs to use its own timer.
- * Make sure you are not using the timer for hrt
- * that is being using for the wifi
-*/
-#define HRT_TIMER 2
+#define ADC_CHANNELS \
+((1 << ADC_BATTERY_VOLTAGE_CHANNEL) |\
+(1 << ADC_BATTERY_CURRENT_CHANNEL))
 
-/* This board provides a DMA pool and APIs */			// Needs to be figured out
-#define BOARD_DMA_ALLOC_POOL_SIZE 2048
+// #define CONFIG_ESP32_ADC_VOL_3100 1
+// #define CONFIG_ESP32_ADC1_CHANNEL4 1
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
-#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
 
-/* PWM
+
+#define ADC_V5_V_FULL_SCALE (7.17f)
+
+#define GPIO_HEATER_OUTPUT   /* PA8 */ (GPIO_OUTPUT| 46)
+#define HEATER_OUTPUT_EN(on_true)      px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+
+/* AUX PWMs
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS      4
+#define BOARD_NUM_IO_TIMERS 2
+#define DIRECT_PWM_OUTPUT_CHANNELS	4
 
-// #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_USB_VBUS_VALID));
-int esp32_spiflash_init(void);
-int esp32_partition_init(void);
+// #define BOARD_ENABLE_CONSOLE_BUFFER
+
+/* Power supply control and monitoring GPIOs. */
+//#define GPIO_VDD_BRICK_VALID         (GPIO_INPUT|GPIO_PULLUP|32)
+//#define GPIO_VDD_USB_VALID           (GPIO_INPUT|GPIO_PULLUP|35)
+
+
+#define BOARD_ADC_USB_CONNECTED      1//(px4_arch_gpioread(GPIO_VDD_USB_VALID))
+#define BOARD_ADC_BRICK_VALID        1//(px4_arch_gpioread(GPIO_VDD_BRICK_VALID))
+#define BOARD_ADC_USB_VALID          1//(px4_arch_gpioread(GPIO_VDD_USB_VALID))
+
 
 __BEGIN_DECLS
 
-#ifndef __ASSEMBLY__
-
+/****************************************************************************************************
+ * Public Types
+ ****************************************************************************************************/
 
 /****************************************************************************************************
- * Name: rp2040_usbinitialize
+ * Public data
+ ****************************************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+/****************************************************************************************************
+ * Public Functions
+ ****************************************************************************************************/
+
+/****************************************************************************************************
+ * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure USB IO.
+ *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
  *
  ****************************************************************************************************/
 
@@ -111,6 +134,7 @@ extern void esp32_spiinitialize(void);
 extern void board_peripheral_reset(int ms);
 
 #include <px4_platform_common/board_common.h>
+
 
 #endif /* __ASSEMBLY__ */
 

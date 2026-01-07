@@ -46,7 +46,7 @@
 # include <stdint.h>
 #endif
 
-#include <arch/board/esp32_board.h>
+#include <arch/board/esp32s3_board.h>
 
 #define LED_STARTED       0  /* LED2 */
 #define LED_HEAPALLOCATE  1  /* LED3 */
@@ -57,5 +57,18 @@
 #define LED_ASSERTION     6  /* LED1 + LED2 + LED3 */
 #define LED_PANIC         7  /* LED1  + N/C  + N/C */
 
+
+#ifdef CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ
+#  define BOARD_CLOCK_FREQUENCY (CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ * 1000000)
+#else
+#  define BOARD_CLOCK_FREQUENCY 80000000
+#endif
+
+
+#if (defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_ESP32_UART0))
+#define CONFIG_ESP_CONSOLE_UART_NUM 0
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_ESP32_UART1)
+#define CONFIG_ESP_CONSOLE_UART_NUM 1
+#endif
 
 #endif  /* __ARCH_BOARD_BOARD_H */
