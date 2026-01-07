@@ -51,9 +51,9 @@
 
 MEMORY
 {
+
   ROM (RX) :             org = 0x20,
                          len = FLASH_SIZE - ORIGIN(ROM)
-
   /* Below values assume the flash cache is on, and have the blocks this
    * uses subtracted from the length of the various regions. The 'data access
    * port' dram/drom regions map to the same iram/irom regions but are
@@ -66,12 +66,6 @@ MEMORY
 
   /* Flash mapped instruction data. */
 
-  /* The 0x20 offset is a convenience for the app binary image generation.
-   * Flash cache has 64KB pages. The .bin file which is flashed to the chip
-   * has a 0x18 byte file header, and each segment has a 0x08 byte segment
-   * header. Setting this offset makes it simple to meet the flash cache MMU's
-   * constraint that (paddr % 64KB == vaddr % 64KB).
-   */
 
   irom0_0_seg (RX) :     org = 0x400d0020, len = 0x330000 - 0x20
 
@@ -89,13 +83,6 @@ MEMORY
                          len = 0x2c200 - CONFIG_ESP32_TRACEMEM_RESERVE_DRAM - CONFIG_ESP32_BT_RESERVE_DRAM
 
   /* Flash mapped constant data */
-
-  /* The 0x20 offset is a convenience for the app binary image generation.
-   * Flash cache has 64KB pages. The .bin file which is flashed to the chip
-   * has a 0x18 byte file header, and each segment has a 0x08 byte segment
-   * header. Setting this offset makes it simple to meet the flash cache MMU's
-   * constraint that (paddr % 64KB == vaddr % 64KB).
-   */
 
   drom0_0_seg (R) :      org = 0x3f400020, len = FLASH_SIZE - 0x20
 
@@ -118,21 +105,17 @@ MEMORY
   extmem_seg (RWX) :     org = 0x3f800000, len = 0x400000
 }
 
-REGION_ALIAS("default_rodata_seg", dram0_0_seg);
-REGION_ALIAS("default_code_seg", iram0_0_seg);
+  REGION_ALIAS("default_rodata_seg", drom0_0_seg);
+  REGION_ALIAS("default_code_seg", irom0_0_seg);
 
 _sram1_iram_start = 0x400a0000;
-_sram1_iram_len = _iram_text_end > _sram1_iram_start ? _iram_text_end - _sram1_iram_start : 0;
+_sram1_iram_len = 0;
 
 /* Heap ends at top of dram0_0_seg */
 
-_eheap = _iram_text_end > _sram1_iram_start ?
-  ALIGN(0x40000000 - _sram1_iram_len - 3, 4) - CONFIG_ESP32_TRACEMEM_RESERVE_DRAM :
-  0x40000000 - CONFIG_ESP32_TRACEMEM_RESERVE_DRAM;
+_eheap = 0x40000000 - 0;
 
-/* IRAM heap ends at top of dram0_0_seg */
-
-_eiramheap = _iram_text_end > _sram1_iram_start ? ALIGN(_iram_text_end, 4) : 0x400a0000;
+_eiramheap = 0x400a0000;
 
 /* Mark the end of the RTC heap (top of the RTC region) */
 

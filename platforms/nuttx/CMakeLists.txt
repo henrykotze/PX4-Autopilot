@@ -287,17 +287,12 @@ if(CONFIG_ARCH_CHIP_ESP32)
 			drivers_board
 			arch_hrt
 			arch_board_reset
-			# -L${WIRELESS_LIB}
-			-Wl,--start-group
-			# ${NUTTX_NETWORK_LIB}
-			-Wl,--end-group
 	)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
-	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_net)
-	target_link_libraries(nuttx_net INTERFACE nuttx_mm)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 	target_link_libraries(px4 PRIVATE
 		-nostartfiles
 		-nodefaultlibs
@@ -309,16 +304,17 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-Wl,--cref
 		# -L${WIRELESS_LIB}
 
-		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_aliases.ld
+		# -Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld
+		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
+		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
+		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_rom.ld
+		-L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--gc-sections
 
 		-Wl,--start-group
-			${nuttx_libs}
 			${NUTTX_STARTUP_OBJS}
-			# ${NUTTX_NETWORK_LIB}
+			${nuttx_libs}
 		-Wl,--end-group
 
 		m
