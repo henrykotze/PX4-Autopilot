@@ -245,7 +245,7 @@ else()
 if(CONFIG_ARCH_CHIP_ESP32)
 
 	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
-	set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
+	# set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
 
 	set(NUTTX_STARTUP_OBJS
 	${PX4_STARTUP_DIR}/xtensa_vectors.o
@@ -287,9 +287,9 @@ if(CONFIG_ARCH_CHIP_ESP32)
 			drivers_board
 			arch_hrt
 			arch_board_reset
-			-L${WIRELESS_LIB}
+			# -L${WIRELESS_LIB}
 			-Wl,--start-group
-			${NUTTX_NETWORK_LIB}
+			# ${NUTTX_NETWORK_LIB}
 			-Wl,--end-group
 	)
 
@@ -307,18 +307,18 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-fno-exceptions
 		-fno-rtti
 		-Wl,--cref
-		-L${WIRELESS_LIB}
+		# -L${WIRELESS_LIB}
 
-		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_rom.ld
+		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld
+		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld
+		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_aliases.ld
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--gc-sections
 
 		-Wl,--start-group
 			${nuttx_libs}
 			${NUTTX_STARTUP_OBJS}
-			${NUTTX_NETWORK_LIB}
+			# ${NUTTX_NETWORK_LIB}
 		-Wl,--end-group
 
 		m

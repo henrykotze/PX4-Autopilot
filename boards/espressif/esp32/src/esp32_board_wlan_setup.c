@@ -34,7 +34,7 @@
 #include <nuttx/wireless/wireless.h>
 
 #include "esp32_spiflash.h"
-#include "esp32_wlan.h"
+// #include "esp32_wlan.h"
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/

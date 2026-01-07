@@ -46,7 +46,7 @@ extern "C"
  * Public Function Prototypes
  ****************************************************************************/
 
-#ifdef CONFIG_ESP32_WIRELESS
+#ifdef CONFIG_WIRELESS
 
 /****************************************************************************
  * Name: board_wlan_init

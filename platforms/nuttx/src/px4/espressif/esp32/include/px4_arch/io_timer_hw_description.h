@@ -39,8 +39,8 @@
 #include <px4_platform_common/constexpr_util.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform/io_timer_init.h>
-#include <esp32_tim.h>
-#include <esp32_gpio.h>
+// #include <esp32_tim.h>
+// #include <esp32_gpio.h>
 
 // static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerChannel timer, GPIO::GPIOPin pin);
 

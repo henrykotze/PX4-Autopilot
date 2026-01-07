@@ -64,7 +64,7 @@
 #include <nuttx/mm/gran.h>
 
 
-#include <chip.h>
+// #include <chip.h>
 #include "board_config.h"
 
 #include <arch/board/board.h>
