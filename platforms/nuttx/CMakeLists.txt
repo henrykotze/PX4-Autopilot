@@ -313,7 +313,7 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-Wl,--gc-sections
 
 		-Wl,--start-group
-			# ${NUTTX_STARTUP_OBJS}
+			${NUTTX_STARTUP_OBJS}
 			${nuttx_libs}
 		-Wl,--end-group
 
