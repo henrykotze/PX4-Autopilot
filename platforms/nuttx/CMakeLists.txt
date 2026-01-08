@@ -304,11 +304,11 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-Wl,--cref
 		# -L${WIRELESS_LIB}
 
-		# -Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld
-		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
-		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_rom.ld
-		-L${NUTTX_CONFIG_DIR_CYG}/scripts
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld
+		# -Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
+		# -T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
+		# -T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_rom.ld
+		# -L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--gc-sections
 

@@ -20,92 +20,12 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
 /* Default entry point: */
 
 ENTRY(__start);
 
 SECTIONS
 {
-#ifdef CONFIG_ESP32_APP_FORMAT_MCUBOOT
-  .metadata :
-  {
-    /* The following metadata refers to the to MCUboot's struct
-     * esp_image_load_header defined at the following commit:
-     * https://github.com/mcu-tools/mcuboot/blob/cd22b693da426826e0255f8ee5b18d7360d9bc8f/boot/espressif/hal/include/esp_mcuboot_image.h
-     */
-
-    /* Magic for load header */
-
-    LONG(0xace637d3)
-
-    /* Application entry point address */
-
-    KEEP(*(.entry_addr))
-
-    /* IRAM metadata:
-     * - Destination address (VMA) for IRAM region
-     * - Flash offset (LMA) for start of IRAM region
-     * - Size of IRAM region
-     */
-
-    LONG(ADDR(.iram0.vectors))
-    LONG(LOADADDR(.iram0.vectors))
-    LONG(LOADADDR(.iram0.text) + SIZEOF(.iram0.text) - LOADADDR(.iram0.vectors))
-
-    /* DRAM metadata:
-     * - Destination address (VMA) for DRAM region
-     * - Flash offset (LMA) for start of DRAM region
-     * - Size of DRAM region
-     */
-
-    LONG(ADDR(.dram0.data))
-    LONG(LOADADDR(.dram0.data))
-    LONG(SIZEOF(.dram0.data))
-
-    /* RTC_IRAM metadata:
-     * - Destination address (VMA) for RTC_IRAM region
-     * - Flash offset (LMA) for start of RTC_IRAM region
-     * - Size of RTC_IRAM region
-     */
-
-    LONG(ADDR(.rtc.text))
-    LONG(LOADADDR(.rtc.text))
-    LONG(SIZEOF(.rtc.text))
-
-    /* RTC_DRAM metadata:
-     * - Destination address (VMA) for RTC_DRAM region
-     * - Flash offset (LMA) for start of RTC_DRAM region
-     * - Size of RTC_DRAM region
-     */
-
-    LONG(ADDR(.rtc.data))
-    LONG(LOADADDR(.rtc.data))
-    LONG(SIZEOF(.rtc.data))
-
-    /* IROM metadata:
-     * - Destination address (VMA) for IROM region
-     * - Flash offset (LMA) for start of IROM region
-     * - Size of IROM region
-     */
-
-    LONG(ADDR(.flash.text))
-    LONG(LOADADDR(.flash.text))
-    LONG(SIZEOF(.flash.text))
-
-    /* DROM metadata:
-     * - Destination address (VMA) for DROM region
-     * - Flash offset (LMA) for start of DROM region
-     * - Size of DROM region
-     */
-
-    LONG(ADDR(.flash.rodata))
-    LONG(LOADADDR(.flash.rodata))
-    LONG(LOADADDR(.flash.rodata) + SIZEOF(.flash.rodata) - LOADADDR(.flash.rodata))
-  } >metadata
-#endif
-
   /* Send .iram0 code to iram */
 
   .iram0.vectors :
@@ -222,9 +142,6 @@ SECTIONS
     *libarch.a:*cpu_region_protect.*(.text .text.* .literal .literal.*)
     *libarch.a:*flash_qio_mode.*(.text .text.* .literal .literal.*)
 
-#ifdef CONFIG_STACK_CANARIES
-    *libc.a:lib_stackchk.*(.literal .text .literal.* .text.*)
-#endif
     *libarch.a:esp32_cpuindex.*(.literal .text .literal.* .text.*)
     *libarch.a:esp32_irq.*(.literal .text .literal.* .text.*)
     *libarch.a:esp32_user.*(.literal .text .literal.* .text.*)
@@ -357,9 +274,6 @@ SECTIONS
     *(.share.mem)
     *(.gnu.linkonce.b.*)
     *(COMMON)
-#ifdef CONFIG_STACK_CANARIES
-    *libc.a:lib_stackchk.*(.bss  .bss.*  COMMON)
-#endif
     *libarch.a:esp_spiflash.*(.bss  .bss.*  COMMON)
     *libarch.a:xtensa_cpupause.*(.bss  .bss.*  COMMON)
     *libarch.a:xtensa_copystate.*(.bss  .bss.*  COMMON)
@@ -406,9 +320,6 @@ SECTIONS
     *(.dram1 .dram1.*)
     esp32_start.*(.rodata  .rodata.*)
     *libphy.a:(.rodata  .rodata.*)
-#ifdef CONFIG_STACK_CANARIES
-    *libc.a:lib_stackchk.*(.rodata  .rodata.*)
-#endif
     *libarch.a:xtensa_context.*(.rodata  .rodata.*)
     *libarch.a:xtensa_copystate.*(.rodata  .rodata.*)
     *libarch.a:xtensa_cpupause.*(.rodata  .rodata.*)
@@ -563,13 +474,11 @@ SECTIONS
     *(.srodata.*)
     *(.rodata)
     *(.rodata.*)
-#ifdef CONFIG_ESPRESSIF_WIRELESS
     *(.rodata_wlog_verbose.*)
     *(.rodata_wlog_debug.*)
     *(.rodata_wlog_info.*)
     *(.rodata_wlog_warning.*)
     *(.rodata_wlog_error.*)
-#endif
     *(.irom1.text) /* catch stray ICACHE_RODATA_ATTR */
     *(.gnu.linkonce.r.*)
     *(.rodata1)
