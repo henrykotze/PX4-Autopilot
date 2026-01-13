@@ -35,7 +35,7 @@
 
 #include "esp32_aliases.ld"
 
-#define FLASH_SIZE 0x400000
+#  define FLASH_SIZE 0x800000
 
 #define SRAM1_IRAM_LEN        0xa000
 #define RTC_TIMER_RESERVE_RTC (24)
@@ -54,13 +54,6 @@ MEMORY
   iram0_0_seg (RX) :     org = 0x40080000, len = 0x20000 + 0xa000
 
   /* Flash mapped instruction data. */
-
-  /* The 0x20 offset is a convenience for the app binary image generation.
-   * Flash cache has 64KB pages. The .bin file which is flashed to the chip
-   * has a 0x18 byte file header, and each segment has a 0x08 byte segment
-   * header. Setting this offset makes it simple to meet the flash cache MMU's
-   * constraint that (paddr % 64KB == vaddr % 64KB).
-   */
 
   irom0_0_seg (RX) :     org = 0x400d0020, len = 0x330000 - 0x20
 
@@ -86,7 +79,7 @@ MEMORY
    * constraint that (paddr % 64KB == vaddr % 64KB).
    */
 
-  drom0_0_seg (R) :      org = 0x3f400020, len = FLASH_SIZE - 0x20
+  drom0_0_seg (R) :      org = 0x3f400020, len = 0x800000 - 0x20
 
   /* RTC fast memory (executable). Persists over deep sleep. */
 
@@ -100,7 +93,7 @@ MEMORY
   rtc_slow_seg (RW) :    org = 0x50000000,
                          len = 0x1000
 
-  rtc_reserved_seg(RW) : org = 0x50000000 + 0x2000 - 24, len = 0x0
+  rtc_reserved_seg(RW) : org = 0x50000000 + 0x2000 - 24, len = 24
 
   /* External memory, including data and text */
 
@@ -116,7 +109,7 @@ _sram1_iram_len = ( _iram_text_end > _sram1_iram_start) ? (_iram_text_end - _sra
 /* Heap ends at top of dram0_0_seg */
 
 _eheap = (_iram_text_end > _sram1_iram_start) ?
-  ALIGN(0x40000000 - _sram1_iram_len - 3, 4): 0x40000000;
+  ALIGN(0x40000000 - _sram1_iram_len - 3, 4) : 0x40000000;
 
 /* IRAM heap ends at top of dram0_0_seg */
 

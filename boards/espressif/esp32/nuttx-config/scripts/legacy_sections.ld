@@ -276,13 +276,6 @@ SECTIONS
 
     *(.rodata)
     *(.rodata.*)
-#ifdef CONFIG_ESPRESSIF_WIRELESS
-    *(.rodata_wlog_verbose.*)
-    *(.rodata_wlog_debug.*)
-    *(.rodata_wlog_info.*)
-    *(.rodata_wlog_warning.*)
-    *(.rodata_wlog_error.*)
-#endif
     *(.irom1.text) /* catch stray ICACHE_RODATA_ATTR */
     *(.gnu.linkonce.r.*)
     *(.rodata1)

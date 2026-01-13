@@ -313,7 +313,7 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-locale.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-nano.ld
+		#-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-nano.ld
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-time.ld
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_aliases.ld

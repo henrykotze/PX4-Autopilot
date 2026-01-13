@@ -537,23 +537,23 @@ int esp32_spiflash_init(void)
 {
 	int ret = OK;
 
-// #ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
-// 	ret = init_ota_partitions();
+#ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
+	ret = init_ota_partitions();
 
-// 	if (ret < 0) {
-// 		return ret;
-// 	}
+	if (ret < 0) {
+		return ret;
+	}
 
-// #endif
+#endif
 
-// #ifdef CONFIG_ESP32_WIFI_SAVE_PARAM
-// 	ret = init_wifi_partition();
+#ifdef CONFIG_ESP32_WIFI_SAVE_PARAM
+	ret = init_wifi_partition();
 
-// 	if (ret < 0) {
-// 		return ret;
-// 	}
+	if (ret < 0) {
+		return ret;
+	}
 
-// #endif
+#endif
 
 	ret = init_storage_partition();
 
