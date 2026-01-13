@@ -61,6 +61,7 @@ else ifeq ($(CONFIG_ARCH_ARMV6M),y)
 else ifeq ($(CONFIG_ARCH_XTENSA),y)
   include $(TOPDIR)/arch/xtensa/src/lx7/Toolchain.defs
   ARCHDEFINES += -D__NuttX__
+   LDFLAGS += --wrap=bootloader_print_banner
 endif
 
 # Replace each space separated word in the string that contains "cygdrive"
@@ -80,7 +81,7 @@ endef
 CC = ${CMAKE_C_COMPILER}
 CXX = ${CMAKE_CXX_COMPILER}
 CPP = ${CMAKE_C_COMPILER} -E
-LD = ${CMAKE_LD}
+LD = ${CMAKE_LD} --wrap=bootloader_print_banner
 STRIP = ${CMAKE_STRIP} --strip-unneeded
 AR = ${CMAKE_AR} rcs
 NM = ${CMAKE_NM}

@@ -227,6 +227,8 @@ static struct spi_dev_s *spi3;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+
+	// syslog(LOG_ERR, "Starting\n");
 	px4_platform_init();
 
 	/* configure the DMA allocator */				// Needs to be figured out
@@ -277,7 +279,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
 	}
 
-	esp32_rt_timer_init();
+	// esp32_rt_timer_init();
 
 	led_on(GPIO_LED_BLUE);
 	up_mdelay(100);
@@ -294,7 +296,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	up_mdelay(1000);
 
-	board_wlan_init();
+	// board_wlan_init();
 
 	return OK;
 }

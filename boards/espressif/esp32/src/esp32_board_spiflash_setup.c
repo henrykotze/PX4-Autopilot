@@ -91,7 +91,7 @@ static int init_ota_partitions(void)
 	char blockdev[18];
 	int ret = OK;
 
-	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET, CONFIG_ESP32_STORAGE_MTD_SIZE, false);
+	mtd = esp_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET, CONFIG_ESP32_STORAGE_MTD_SIZE);
 
 	ret = ftl_initialize(0, mtd);
 
@@ -275,9 +275,8 @@ static int init_storage_partition(void)
 	struct mtd_dev_s *mtd;
 
 
-	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
-					   CONFIG_ESP32_STORAGE_MTD_SIZE,
-					   STORAGE_ENCRYPT);
+	mtd = esp_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
+					   CONFIG_ESP32_STORAGE_MTD_SIZE);
 
 	if (!mtd) {
 		PX4_INFO("ERROR: Failed to alloc MTD partition of SPI Flash\n");

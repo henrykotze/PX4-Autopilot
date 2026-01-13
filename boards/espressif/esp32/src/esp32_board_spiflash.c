@@ -42,8 +42,10 @@
 #include <nuttx/drivers/drivers.h>
 #endif
 
-#include "esp32_spiflash.h"
+// #include "esp32_spiflash.h"
 #include "esp32_board_spiflash_setup.h"
+#include "espressif/esp_spiflash.h"
+#include "espressif/esp_spiflash_mtd.h"
 
 // #define CONFIG_ESP32_SPIFLASH_SPIFFS
 
@@ -130,8 +132,7 @@ static int init_ota_partitions(void)
 
 	for (int i = 0; i < ARRAYSIZE(g_ota_partition_table); ++i) {
 		const struct ota_partition_s *part = &g_ota_partition_table[i];
-		mtd = esp32_spiflash_alloc_mtdpart(part->offset, part->size,
-						   OTA_ENCRYPT);
+		mtd = esp_spiflash_alloc_mtdpart(part->offset, part->size);
 
 		ret = ftl_initialize(i, mtd);
 
@@ -364,9 +365,8 @@ static int init_wifi_partition(void)
 	int ret = OK;
 	struct mtd_dev_s *mtd;
 
-	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_WIFI_MTD_OFFSET,
-					   CONFIG_ESP32_WIFI_MTD_SIZE,
-					   WIFI_ENCRYPT);
+	mtd = esp_spiflash_alloc_mtdpart(CONFIG_ESP32_WIFI_MTD_OFFSET,
+					   CONFIG_ESP32_WIFI_MTD_SIZE);
 
 	if (!mtd) {
 		ferr("ERROR: Failed to alloc MTD partition of SPI Flash\n");
@@ -429,9 +429,8 @@ static int init_storage_partition(void)
 	int ret = OK;
 	struct mtd_dev_s *mtd;
 
-	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
-					   CONFIG_ESP32_STORAGE_MTD_SIZE,
-					   STORAGE_ENCRYPT);
+	mtd = esp_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
+					   CONFIG_ESP32_STORAGE_MTD_SIZE);
 
 	if (!mtd) {
 		ferr("ERROR: Failed to alloc MTD partition of SPI Flash\n");
@@ -497,9 +496,8 @@ static int init_param_partition(void)
 	int ret = OK;
 	struct mtd_dev_s *mtd;
 
-	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_PARAM_MTD_OFFSET,
-					   CONFIG_ESP32_PARAM_MTD_SIZE,
-					   STORAGE_ENCRYPT);
+	mtd = esp_spiflash_alloc_mtdpart(CONFIG_ESP32_PARAM_MTD_OFFSET,
+					   CONFIG_ESP32_PARAM_MTD_SIZE);
 
 	if (!mtd) {
 		ferr("ERROR: Failed to alloc PARAM MTD partition of SPI Flash\n");
@@ -539,23 +537,23 @@ int esp32_spiflash_init(void)
 {
 	int ret = OK;
 
-#ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
-	ret = init_ota_partitions();
+// #ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
+// 	ret = init_ota_partitions();
 
-	if (ret < 0) {
-		return ret;
-	}
+// 	if (ret < 0) {
+// 		return ret;
+// 	}
 
-#endif
+// #endif
 
-#ifdef CONFIG_ESP32_WIFI_SAVE_PARAM
-	ret = init_wifi_partition();
+// #ifdef CONFIG_ESP32_WIFI_SAVE_PARAM
+// 	ret = init_wifi_partition();
 
-	if (ret < 0) {
-		return ret;
-	}
+// 	if (ret < 0) {
+// 		return ret;
+// 	}
 
-#endif
+// #endif
 
 	ret = init_storage_partition();
 

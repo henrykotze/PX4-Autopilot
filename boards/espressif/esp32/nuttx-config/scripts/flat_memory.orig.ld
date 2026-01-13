@@ -31,18 +31,40 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
+/* Alias PROVIDE lines removed to avoid referencing symbols
+ * that may not be present at link time. These aliases are
+ * provided elsewhere when needed (see esp32_aliases.ld).
+ */
 
-#include "esp32_aliases.ld"
 
-#define FLASH_SIZE 0x400000
+# define FLASH_SIZE 0x400000
 
 #define SRAM1_IRAM_LEN        0xa000
 #define RTC_TIMER_RESERVE_RTC (24)
 #define RESERVE_RTC_MEM       (RTC_TIMER_RESERVE_RTC)
+#define CONFIG_ESP32_BT_RESERVE_DRAM 0
+#define CONFIG_ESP32_TRACEMEM_RESERVE_DRAM 0
+#define CONFIG_ESP32_ULP_COPROC_RESERVE_MEM 0
 
 MEMORY
 {
+
+  /* The 0x20 offset is a convenience for the app binary image generation.
+   * Flash cache has 64KB pages. The .bin file which is flashed to the chip
+   * has a 0x18 byte file header, and each segment has a 0x08 byte segment
+   * header. Setting this offset makes it simple to meet the flash cache MMU's
+   * constraint that (paddr % 64KB == vaddr % 64KB).
+   */
+
+  ROM (RX) :             org = 0x20,
+                         /* Use explicit constant instead of ORIGIN(ROM)
+                          * because ORIGIN() is not available at this
+                          * point in all linker versions and causes
+                          * invalid-length errors. Subtract the 0x20
+                          * header offset from the flash size.
+                          */
+                         len = 0x400000 - 0x20
+
   /* Below values assume the flash cache is on, and have the blocks this
    * uses subtracted from the length of the various regions. The 'data access
    * port' dram/drom regions map to the same iram/irom regions but are
@@ -74,8 +96,8 @@ MEMORY
    * be used.
    */
 
-  dram0_0_seg (RW) :     org = 0x3ffb0000,
-                         len = 0x2c200
+  dram0_0_seg (RW) :     org = 0x3ffb0000 + 0,
+                         len = 0x2c200 - 0 - 0
 
   /* Flash mapped constant data */
 
@@ -86,7 +108,7 @@ MEMORY
    * constraint that (paddr % 64KB == vaddr % 64KB).
    */
 
-  drom0_0_seg (R) :      org = 0x3f400020, len = FLASH_SIZE - 0x20
+  drom0_0_seg (R) :      org = 0x3f400020, len = 0x400000 - 0x20
 
   /* RTC fast memory (executable). Persists over deep sleep. */
 
@@ -97,10 +119,10 @@ MEMORY
    * if enabled.
    */
 
-  rtc_slow_seg (RW) :    org = 0x50000000,
-                         len = 0x1000
+  rtc_slow_seg (RW) :    org = 0x50000000 + 0,
+                         len = 0x1000 - 0
 
-  rtc_reserved_seg(RW) : org = 0x50000000 + 0x2000 - 24, len = 0x0
+  rtc_reserved_seg(RW) : org = 0x50000000 + 0x2000 - 24, len = 24
 
   /* External memory, including data and text */
 
@@ -116,7 +138,8 @@ _sram1_iram_len = ( _iram_text_end > _sram1_iram_start) ? (_iram_text_end - _sra
 /* Heap ends at top of dram0_0_seg */
 
 _eheap = (_iram_text_end > _sram1_iram_start) ?
-  ALIGN(0x40000000 - _sram1_iram_len - 3, 4): 0x40000000;
+  ALIGN(0x40000000 - _sram1_iram_len - 3, 4) - 0 :
+  0x40000000 - 0;
 
 /* IRAM heap ends at top of dram0_0_seg */
 

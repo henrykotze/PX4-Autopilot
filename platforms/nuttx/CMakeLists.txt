@@ -257,6 +257,7 @@ if(CONFIG_ARCH_CHIP_ESP32)
 	${PX4_STARTUP_DIR}/xtensa_initialstate.o
 	${PX4_STARTUP_DIR}/esp32_start.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
+	${PX4_STARTUP_DIR}/esp32_clockconfig.o
 	)
 
 	set(NUTTX_NETWORK_LIB
@@ -303,11 +304,19 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-fno-rtti
 		-Wl,--cref
 		# -L${WIRELESS_LIB}
-
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld
-		# -Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
-		# -T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
-		# -T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_rom.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}legacy_sections.ld
+		# -Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-locale.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-nano.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-time.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_aliases.ld
 		# -L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--gc-sections
@@ -331,7 +340,7 @@ if(CONFIG_ARCH_CHIP_ESP32)
 			target_link_libraries(px4 PRIVATE romfs)
 		endif()
 		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-			COMMAND esptool --chip esp32 elf2image -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
+			COMMAND esptool.py --chip esp32 elf2image -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
 			COMMAND du ${PX4_BINARY_OUTPUT} -h
 			DEPENDS px4
 		)
