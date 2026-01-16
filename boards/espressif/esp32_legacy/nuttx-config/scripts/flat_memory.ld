@@ -79,7 +79,8 @@ MEMORY
    * constraint that (paddr % 64KB == vaddr % 64KB).
    */
 
-  drom0_0_seg (R) :      org = 0x3f400020, len = 0x400000 - 0x20
+  drom0_0_seg (R) :      org = 0x3f400020, len = 0x800000 - 0x20
+
 
   /* RTC fast memory (executable). Persists over deep sleep. */
 
@@ -93,7 +94,7 @@ MEMORY
   rtc_slow_seg (RW) :    org = 0x50000000,
                          len = 0x1000
 
-  rtc_reserved_seg(RW) : org = 0x50000000 + 0x2000 - 24, len = 24
+  rtc_reserved_seg(RW) : org = 0x50000000 + 0x2000 - ((24)), len = (24)
 
   /* External memory, including data and text */
 
