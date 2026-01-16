@@ -1,3 +1,22 @@
+/*
+ * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/* These are the newlib functions present in ESP32 ROM.
+   They should not be used when compiling with PSRAM cache workaround enabled.
+   See also esp32.rom.newlib-data.ld for the list of .data/.bss symbols
+   used by these functions, and esp32.rom.newlib-nano.ld for "nano" versions
+   of printf/scanf family of functions.
+
+   Unlike other ROM functions which are exported using PROVIDE, which declares
+   weak symbols, newlib related functions are exported using assignment,
+   which declares strong symbols. This is done so that ROM functions are always
+   used instead of the ones provided by libc.a.
+
+   Time functions were moved to the esp32.rom.newlib-time.ld file.
+ */
+
 abs = 0x40056340;
 bzero = 0x4000c1f4;
 div = 0x40056348;

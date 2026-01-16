@@ -1,3 +1,13 @@
+/* These are the .bss/.data symbols used by newlib functions present in ESP32 ROM.
+   See also esp32.rom.newlib-funcs.ld for the list of general newlib functions,
+   and esp32.rom.newlib-nano.ld for "nano" versions of printf/scanf family of functions.
+
+   Unlike other ROM functions and data which are exported using PROVIDE, which declares
+   weak symbols, newlib related functions are exported using assignment,
+   which declares strong symbols. This is done so that ROM functions are always
+   used instead of the ones provided by libc.a.
+ */
+
 _ctype_ = 0x3ff96354;
 __ctype_ptr__ = 0x3ff96350;
 environ = 0x3ffae0b4;
