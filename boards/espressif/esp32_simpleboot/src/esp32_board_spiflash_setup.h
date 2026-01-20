@@ -57,7 +57,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int esp32_spiflash_init(void);
+int esp32_spiflash_initialize(void);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -1,8 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Apache-2.0
- */
 _cleanup = 0x40001df8;
 _cleanup_r = 0x40001d48;
 creat = 0x40000e8c;
