@@ -257,8 +257,11 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 		case NUM_TASK_STATES:
 			// DO NOTHING
 			break;
+#ifdef CONFIG_SMP
 		case TSTATE_TASK_ASSIGNED:
+			// DO NOTHING
 			break;
+#endif
 		}
 
 		float current_load = 0.f;
