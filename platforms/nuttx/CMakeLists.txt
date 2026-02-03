@@ -37,7 +37,10 @@ endif()
 
 include(cygwin_cygpath)
 
-# add_link_options(-u esp_system_include_startup_funcs)
+if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+	add_link_options(-u esp_system_include_startup_funcs)
+endif()
+
 add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
