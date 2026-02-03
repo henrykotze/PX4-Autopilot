@@ -61,6 +61,7 @@ else ifeq ($(CONFIG_ARCH_ARMV6M),y)
 else ifeq ($(CONFIG_ARCH_XTENSA),y)
   include $(TOPDIR)/arch/xtensa/src/lx7/Toolchain.defs
   ARCHDEFINES += -D__NuttX__
+  CHIP_SERIES=esp32
 endif
 
 # Replace each space separated word in the string that contains "cygdrive"

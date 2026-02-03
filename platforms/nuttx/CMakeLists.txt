@@ -37,7 +37,7 @@ endif()
 
 include(cygwin_cygpath)
 
-add_link_options(-u esp_system_include_startup_funcs)
+# add_link_options(-u esp_system_include_startup_funcs)
 add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
@@ -351,7 +351,6 @@ else()
 	${PX4_STARTUP_DIR}/xtensa_initialstate.o
 	${PX4_STARTUP_DIR}/esp32_start.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
-	${PX4_STARTUP_DIR}/esp32_clockconfig.o
 	)
 
 	execute_process(COMMAND touch ${NUTTX_STARTUP_OBJS}
@@ -385,18 +384,18 @@ else()
 		-fno-rtti
 		-Wl,--cref
 		# -L${WIRELESS_LIB}
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}legacy_sections.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_aliases.ld
-		# -L${NUTTX_CONFIG_DIR_CYG}/scripts
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libgcc.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
+		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
 		-Wl,-Map=${PX4_CONFIG}.map
+		-Wl,--warn-common
 		-Wl,--gc-sections
 
 		-Wl,--start-group
