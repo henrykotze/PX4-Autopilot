@@ -305,7 +305,7 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 		if (px4_spi_buses[bus].bus == 2) {
 			px4_arch_configgpio(CONFIG_ESP32_SPI2_CLKPIN  | (GPIO_OUTPUT | FUNCTION_2));
 			px4_arch_configgpio(CONFIG_ESP32_SPI2_MOSIPIN | (GPIO_OUTPUT | FUNCTION_2));
-			px4_arch_configgpio(CONFIG_ESP32_SPI2_MISOPIN | (GPIO_INPUT | PULLUP | FUNCTION_2);
+			px4_arch_configgpio(CONFIG_ESP32_SPI2_MISOPIN | (GPIO_INPUT | PULLUP | FUNCTION_2));
 		}
 
 #endif
