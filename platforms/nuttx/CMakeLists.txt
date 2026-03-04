@@ -264,7 +264,26 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 	${PX4_STARTUP_DIR}/esp32_start.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
 	${PX4_STARTUP_DIR}/esp32_cpustart.o
+	${PX4_STARTUP_DIR}/esp_wifi_utils.o
+	${PX4_STARTUP_DIR}/esp_wifi_api.o
+	${PX4_STARTUP_DIR}/esp_wpa_main.o
+	${PX4_STARTUP_DIR}/esp32_wifi_adapter.o
+
 	# ${PX4_STARTUP_DIR}/esp32_clockconfig.o
+	)
+
+	set(NUTTX_NETWORK_LIB
+	# ${PX4_STARTUP_DIR}/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libbtdm_app.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_coex/lib/esp32/libcoexist.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libcore.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libespnow.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libnet80211.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_phy/lib/esp32/libphy.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libpp.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_phy/lib/esp32/librtc.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libsmartconfig.a
+	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libwapi.a
+	# ${PX4_STARTUP_DIR}/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libwpa_supplicant.a
 	)
 
 	execute_process(COMMAND touch ${NUTTX_STARTUP_OBJS}
@@ -282,12 +301,18 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 			drivers_board
 			arch_hrt
 			arch_board_reset
+			-Wl,--start-group
+			${NUTTX_NETWORK_LIB}
+			-Wl,--end-group
+
 	)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
-	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_net)
+	target_link_libraries(nuttx_net INTERFACE nuttx_mm)
+
 	target_link_libraries(px4 PRIVATE
 		-nostartfiles
 		# --entry=esp32_start
@@ -317,6 +342,7 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 		-Wl,--start-group
 			${NUTTX_STARTUP_OBJS}
 			${nuttx_libs}
+			${NUTTX_NETWORK_LIB}
 		# /home/henry/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/14.2.0/esp32/libgcc.a
 		# /home/henry/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/xtensa-esp-elf/lib/esp32/libm.a
 		-Wl,--end-group
