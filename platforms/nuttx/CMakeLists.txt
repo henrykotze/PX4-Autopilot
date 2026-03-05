@@ -251,7 +251,6 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 	message("Building for ESP32 with SIMPLE_BOOT")
 
 	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
-	# set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
 
 	set(NUTTX_STARTUP_OBJS
 	${PX4_STARTUP_DIR}/xtensa_vectors.o
@@ -324,7 +323,6 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 		-fno-rtti
 		-Wl,--cref
 		-Wl,-wrap,bootloader_print_banner
-		# -L${WIRELESS_LIB}
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld.tmp
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
@@ -335,7 +333,7 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
-		# -L${NUTTX_CONFIG_DIR_CYG}/scripts
+		-L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--gc-sections
 
@@ -360,7 +358,7 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 			target_link_libraries(px4 PRIVATE romfs)
 		endif()
 		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-			COMMAND esptool.py --chip esp32 elf2image --ram-only-header -fs 8MB -fm dio -ff "40m" -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
+			COMMAND esptool.py --chip esp32 elf2image --use_segments -fs 8MB -fm dio -ff "40m" -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
 			COMMAND du ${PX4_BINARY_OUTPUT} -h
 			DEPENDS px4
 		)
@@ -368,7 +366,6 @@ else()
 	message("Building for ESP32 with Legacy bootloader")
 
 	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
-	# set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
 
 	set(NUTTX_STARTUP_OBJS
 	${PX4_STARTUP_DIR}/xtensa_vectors.o
@@ -436,6 +433,10 @@ else()
 		gcc
 		)
 
+		target_link_options(px4 PRIVATE "-Wl,--gc-sections")
+		target_link_options(px4 PRIVATE "-Wl,--strip-debug")
+		target_link_options(px4 PRIVATE "-Wl,--orphan-handling=warn")
+
 		if(NOT USE_LD_GOLD)
 			target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
 		endif()
@@ -446,7 +447,7 @@ else()
 			target_link_libraries(px4 PRIVATE romfs)
 		endif()
 		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-			COMMAND esptool.py --chip esp32 elf2image -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
+			COMMAND esptool.py --chip esp32 elf2image --use_segments -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
 			COMMAND du ${PX4_BINARY_OUTPUT} -h
 			DEPENDS px4
 		)
