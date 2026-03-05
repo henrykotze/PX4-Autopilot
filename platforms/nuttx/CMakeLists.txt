@@ -358,7 +358,7 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 			target_link_libraries(px4 PRIVATE romfs)
 		endif()
 		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-			COMMAND esptool.py --chip esp32 elf2image --use_segments -fs 8MB -fm dio -ff "40m" -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
+			COMMAND esptool.py --chip esp32 elf2image --ram-only-header -fs 4MB -fm dio -ff "40m" -o ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR_REL}/${FW_NAME}
 			COMMAND du ${PX4_BINARY_OUTPUT} -h
 			DEPENDS px4
 		)

@@ -5,7 +5,6 @@
 # You can then do "make savedefconfig" to generate a new defconfig file that includes your
 # modifications.
 #
-# CONFIG_ARCH_LEDS is not set
 # CONFIG_DEV_RANDOM is not set
 # CONFIG_DEV_ZERO is not set
 # CONFIG_ESP32_FLASH_DETECT is not set
@@ -24,9 +23,11 @@
 # CONFIG_SPI_CALLBACK is not set
 CONFIG_ALLOW_BSD_COMPONENTS=y
 CONFIG_ARCH="xtensa"
-CONFIG_ARCH_BOARD="esp32-devkitc"
 CONFIG_ARCH_BOARD_COMMON=y
-CONFIG_ARCH_BOARD_ESP32_DEVKITC=y
+CONFIG_ARCH_BOARD_CUSTOM=y
+CONFIG_ARCH_BOARD_CUSTOM_DIR="../../../../boards/espressif/esp32_simpleboot/nuttx-config"
+CONFIG_ARCH_BOARD_CUSTOM_DIR_RELPATH=y
+CONFIG_ARCH_BOARD_CUSTOM_NAME=""
 CONFIG_ARCH_CHIP="esp32"
 CONFIG_ARCH_CHIP_ESP32=y
 CONFIG_ARCH_CHIP_ESP32WROVER=y
