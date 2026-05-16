@@ -173,7 +173,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the horizontal position innovation
-	if (measurement_valid && quality_sufficient) {
+	if (measurement_valid && quality_sufficient && _ev_pos_b_est.fusionActive()) {
 		_ev_pos_b_est.setMaxStateNoise(Vector2f(sqrtf(measurement_var(0)), sqrtf(measurement_var(1))));
 		_ev_pos_b_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd); // TODO
 		_ev_pos_b_est.fuseBias(measurement - position_estimate,
@@ -222,8 +222,14 @@ void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurem
 		ECL_INFO("starting %s fusion, resetting state", EV_AID_SRC_NAME);
 		//_position_sensor_ref = PositionSensor::EV;
 		_information_events.flags.reset_pos_to_vision = true;
-		resetHorizontalPositionTo(measurement, measurement_var);
-		_ev_pos_b_est.reset();
+		if(_ev_pos_b_est.wasFusionActive()){
+			// if we used a bias before, lets make use of it again to align our sensor.
+			// We are not activing fusion of the bias, because we do not have a another sensor aiding position
+			resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
+		}else{
+			resetHorizontalPositionTo(measurement, measurement_var);
+			_ev_pos_b_est.reset();
+		}
 	}
 
 	aid_src.time_last_fuse = _time_delayed_us;
