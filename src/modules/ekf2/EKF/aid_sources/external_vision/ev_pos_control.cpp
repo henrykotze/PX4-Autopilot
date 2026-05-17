@@ -222,11 +222,13 @@ void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurem
 		ECL_INFO("starting %s fusion, resetting state", EV_AID_SRC_NAME);
 		//_position_sensor_ref = PositionSensor::EV;
 		_information_events.flags.reset_pos_to_vision = true;
-		if(_ev_pos_b_est.wasFusionActive()){
+
+		if (_ev_pos_b_est.wasFusionActive()) {
 			// if we used a bias before, lets make use of it again to align our sensor.
 			// We are not activing fusion of the bias, because we do not have a another sensor aiding position
 			resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
-		}else{
+
+		} else {
 			resetHorizontalPositionTo(measurement, measurement_var);
 			_ev_pos_b_est.reset();
 		}
@@ -273,7 +275,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 	}
 
 	// Check if external vision (EV) position fusion has failed to occur within the allowed timeout period.
-        // If it has timed out, velocity drift is no longer constrained, indicating a fusion failure.
+	// If it has timed out, velocity drift is no longer constrained, indicating a fusion failure.
 	const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.no_aid_timeout_max); // 1 second
 
 	if (is_fusion_failing) {
@@ -297,8 +299,9 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 				// are aligned
 				_ev_pos_b_est.setBias(-Vector2f(getLocalHorizontalPosition()) + measurement);
 
-			// Our position state hasnt been constrained by any sensor measurement.
-			// we thus reset our position state using our EV position measurement
+				// Our position state hasnt been constrained by any sensor measurement.
+				// we thus reset our position state using our EV position measurement
+
 			} else {
 				_information_events.flags.reset_pos_to_vision = true;
 				resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
