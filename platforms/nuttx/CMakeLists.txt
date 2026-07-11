@@ -269,7 +269,7 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 	# ${PX4_STARTUP_DIR}/xtensa_initialstate.o
 	${PX4_STARTUP_DIR}/esp32_start.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
-	${PX4_STARTUP_DIR}/esp32_cpustart.o
+	# ${PX4_STARTUP_DIR}/esp32_cpustart.o
 	${PX4_STARTUP_DIR}/esp_wifi_utils.o
 	${PX4_STARTUP_DIR}/esp_wifi_api.o
 	${PX4_STARTUP_DIR}/esp_wpa_main.o
@@ -292,13 +292,36 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 	# ${PX4_STARTUP_DIR}/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libwpa_supplicant.a
 	)
 
-	execute_process(COMMAND touch ${NUTTX_STARTUP_OBJS}
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR})
+	# NUTTX_STARTUP_OBJS are individual .o's produced as a side effect of NuttX's own
+	# recursive `make -C arch/xtensa/src` build (driven by the nuttx_arch_build custom
+	# command in platforms/nuttx/NuttX/CMakeLists.txt), not by any CMake compile rule of
+	# their own. Declaring them as the OUTPUT of a (no-op) custom command that DEPENDS on
+	# nuttx_arch_build gives ninja a real producing edge for each path, so it runs that
+	# recursive build - which is what actually leaves these files populated on disk -
+	# before linking them, instead of linking whatever stale/absent file happens to be
+	# there yet (which is what the old touch-at-configure-time approach could do).
+	# NOTE: deliberately not marked EXTERNAL_OBJECT - CMake's ninja generator treats
+	# that property as "this file is provided from outside the build, never generate
+	# a producing rule for it", which would silently defeat the add_custom_command
+	# below (ninja would then require the file to already exist on disk, exactly the
+	# "missing and no known rule to make it" failure this is meant to avoid).
 	set_source_files_properties(
 		${NUTTX_STARTUP_OBJS}
 		PROPERTIES
-		EXTERNAL_OBJECT true
 		GENERATED true)
+	add_custom_command(
+		OUTPUT ${NUTTX_STARTUP_OBJS}
+		COMMAND ${CMAKE_COMMAND} -E true
+		DEPENDS nuttx_arch_build)
+	# A bare file path embedded in target_link_libraries() is just text on the link
+	# command line as far as CMake's own dependency graph is concerned - it doesn't
+	# make CMake treat the custom command above as "wanted", so ninja would still
+	# prune its rule. An add_custom_target DEPENDS-ing on these paths forces CMake to
+	# actually emit a producing edge for them, and add_dependencies makes px4 wait on it.
+	# (SIMPLE_BOOT and legacy boot are mutually exclusive if/else branches, so reusing
+	# this target name across both is safe - only one is ever configured at a time.)
+	add_custom_target(nuttx_esp32_startup_objs DEPENDS ${NUTTX_STARTUP_OBJS})
+	add_dependencies(px4 nuttx_esp32_startup_objs)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
 
@@ -386,13 +409,32 @@ else()
 	${PX4_STARTUP_DIR}/esp32_wdt.o
 	)
 
-	execute_process(COMMAND touch ${NUTTX_STARTUP_OBJS}
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR})
+	# See the SIMPLE_BOOT branch above: these are produced by NuttX's own recursive
+	# arch/xtensa/src build (nuttx_arch_build), not a CMake compile rule, so declare them
+	# as the OUTPUT of a no-op command DEPENDS-ing on that target to give ninja a real
+	# producing edge, guaranteeing they're actually (re)built before link.
+	# NOTE: deliberately not marked EXTERNAL_OBJECT - CMake's ninja generator treats
+	# that property as "this file is provided from outside the build, never generate
+	# a producing rule for it", which would silently defeat the add_custom_command
+	# below (ninja would then require the file to already exist on disk, exactly the
+	# "missing and no known rule to make it" failure this is meant to avoid).
 	set_source_files_properties(
 		${NUTTX_STARTUP_OBJS}
 		PROPERTIES
-		EXTERNAL_OBJECT true
 		GENERATED true)
+	add_custom_command(
+		OUTPUT ${NUTTX_STARTUP_OBJS}
+		COMMAND ${CMAKE_COMMAND} -E true
+		DEPENDS nuttx_arch_build)
+	# A bare file path embedded in target_link_libraries() is just text on the link
+	# command line as far as CMake's own dependency graph is concerned - it doesn't
+	# make CMake treat the custom command above as "wanted", so ninja would still
+	# prune its rule. An add_custom_target DEPENDS-ing on these paths forces CMake to
+	# actually emit a producing edge for them, and add_dependencies makes px4 wait on it.
+	# (SIMPLE_BOOT and legacy boot are mutually exclusive if/else branches, so reusing
+	# this target name across both is safe - only one is ever configured at a time.)
+	add_custom_target(nuttx_esp32_startup_objs DEPENDS ${NUTTX_STARTUP_OBJS})
+	add_dependencies(px4 nuttx_esp32_startup_objs)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
 

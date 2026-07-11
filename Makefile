@@ -197,6 +197,8 @@ define cmake-build
 		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/nuttx" clean -dXfq 2>/dev/null || true; \
 		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/apps"  clean -dXfq 2>/dev/null || true; \
 		echo "$(1)" > "$$stamp"; \
+		: "the wipe above deletes gitignored files (config.h, fetched HALs like esp-hal-3rdparty, ...) that an existing build.ninja/CMakeCache may still reference as already-built; without also dropping the build dir, ninja aborts the whole plan the first time it hits one of those files with no rule to remake it"; \
+		rm -rf $(BUILD_DIR); \
 	fi
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
@@ -208,6 +210,17 @@ define cmake-build
 		&& cd $(BUILD_DIR) \
 		&& cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) \
 		|| (rm -rf $(BUILD_DIR)); \
+	fi
+	@# NuttX's own "context" step (make clean_context && make pass1dep, driven from
+	@# platforms/nuttx/NuttX/CMakeLists.txt) is supposed to transitively clone any
+	@# chip-specific HAL fetched on demand (e.g. ESP32's esp-hal-3rdparty, pulled in via
+	@# arch/xtensa/src/esp32/Make.defs' own context:: rule). In practice that side effect
+	@# does not reliably happen through CMake's custom-command wiring alone - especially
+	@# right after a distclean/target-switch wipe - so run NuttX's context target directly
+	@# here as a cheap, idempotent safety net before the real build starts. This is a
+	@# no-op if the HAL is already present (its clone rule is a plain file/dir target).
+	@if [ -f "$(SRC_DIR)/platforms/nuttx/NuttX/nuttx/.config" ]; then \
+		$(MAKE) -C "$(SRC_DIR)/platforms/nuttx/NuttX/nuttx" --no-print-directory --silent context || true; \
 	fi
 	@# run the build for the specified target
 	@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
