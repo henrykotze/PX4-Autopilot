@@ -76,7 +76,13 @@
 #define LEDC_LSCH0_CONF1_REG          (DR_REG_LEDC_BASE + 0x00AC)
 #define LEDC_LSCH0_HPOINT_REG          (DR_REG_LEDC_BASE + 0x00A4)
 #define LEDC_LSCH0_DUTY_REG          (DR_REG_LEDC_BASE + 0x00A8)
+#define LEDC_INT_ENA_REG          (DR_REG_LEDC_BASE + 0x0188)
 #define LEDC_CONF_REG          (DR_REG_LEDC_BASE + 0x0190)
+
+#define BIT(nr)                 (1UL << (nr))
+
+#define putreg32(v,a)     (*(volatile uint32_t *)(a) = (v))
+
 
 #define LEDC_SIG_OUT_EN_LSCH0  1 << 2
 #define LEDC_PARA_UP_LSCH0  1 << 4
@@ -117,6 +123,7 @@
 
 #define SET_CHAN_BITS(c, r, b)    setbits(b, LEDC_CHAN_REG(r, c));
 #define SET_CHAN_REG(c, r, v)     putreg32(v, LEDC_CHAN_REG(r, c));
+#define GET_CHAN_REG(c,r) 	  getreg32(LEDC_CHAN_REG(r, c));
 
 uint32_t reload = 0;
 uint32_t prescaler = 0;
