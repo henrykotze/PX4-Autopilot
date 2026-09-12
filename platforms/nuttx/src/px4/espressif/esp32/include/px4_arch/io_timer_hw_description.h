@@ -50,7 +50,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 		Timer::TimerChannel timer, GPIO::GPIOPin pin)
 {
 	timer_io_channels_t ret = {};
-	ret.gpio_out = getGPIOPin(pin.pin);
+	ret.gpio_out = getGPIOPin(pin.pin) | GPIO_OUTPUT | GPIO_PULLUP;
 	ret.timer_channel = timer.channel;
 	ret.timer_index = timer.timer;
 
