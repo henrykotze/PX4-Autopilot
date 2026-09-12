@@ -139,7 +139,6 @@ FLAGS = $(MAXOPTIMIZATION) -g2 \
 	-Wno-builtin-declaration-mismatch \
 	-Wno-cpp \
 	-Wno-format \
-	-Wno-missing-braces \
 	-Wno-format-truncation \
 	-Wno-maybe-uninitialized \
 	-Wno-missing-field-initializers \
@@ -161,8 +160,12 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 	FLAGS += -finstrument-functions -ffixed-r10
 endif
 
+# xtensa toolchain emits missing-braces warnings on valid NuttX initializers
+ifeq ($(CONFIG_ARCH_XTENSA),y)
+	FLAGS += -Wno-missing-braces
+endif
+
 CFLAGS = $(ARCHINCLUDES) \
-	 $(ARCHDEFINES) \
 	-std=gnu11 \
 	${CMAKE_C_FLAGS} \
 	$(FLAGS) \
@@ -183,7 +186,6 @@ CFLAGS = $(ARCHINCLUDES) \
 	${CMAKE_C_COMP_DEP_FLAGS}
 
 CXXFLAGS = $(ARCHXXINCLUDES) \
-	 $(ARCHDEFINES) \
 	-std=c++14 \
 	-nostdinc++ \
 	${CMAKE_CXX_FLAGS} \

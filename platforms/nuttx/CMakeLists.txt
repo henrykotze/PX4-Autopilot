@@ -254,129 +254,127 @@ else()
 
 if(CONFIG_ARCH_CHIP_ESP32)
 
-if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
-	message("Building for ESP32 with SIMPLE_BOOT")
+	if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
+		message(STATUS "Building for ESP32 with SIMPLE_BOOT")
 
-	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
+		set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
 
-	set(NUTTX_STARTUP_OBJS
-	${PX4_STARTUP_DIR}/xtensa_vectors.o
-	${PX4_STARTUP_DIR}/xtensa_window_vector.o
-	${PX4_STARTUP_DIR}/xtensa_windowspill.o
-	${PX4_STARTUP_DIR}/xtensa_int_handlers.o
-	${PX4_STARTUP_DIR}/xtensa_user_handler.o
-	${PX4_STARTUP_DIR}/xtensa_initialize.o
-	# ${PX4_STARTUP_DIR}/xtensa_initialstate.o
-	${PX4_STARTUP_DIR}/esp32_start.o
-	${PX4_STARTUP_DIR}/esp32_wdt.o
-	# ${PX4_STARTUP_DIR}/esp32_cpustart.o
-	${PX4_STARTUP_DIR}/esp_wifi_utils.o
-	${PX4_STARTUP_DIR}/esp_wifi_api.o
-	${PX4_STARTUP_DIR}/esp_wpa_main.o
-	${PX4_STARTUP_DIR}/esp32_wifi_adapter.o
+		set(NUTTX_STARTUP_OBJS
+		${PX4_STARTUP_DIR}/xtensa_vectors.o
+		${PX4_STARTUP_DIR}/xtensa_window_vector.o
+		${PX4_STARTUP_DIR}/xtensa_windowspill.o
+		${PX4_STARTUP_DIR}/xtensa_int_handlers.o
+		${PX4_STARTUP_DIR}/xtensa_user_handler.o
+		${PX4_STARTUP_DIR}/xtensa_initialize.o
+		# ${PX4_STARTUP_DIR}/xtensa_initialstate.o
+		${PX4_STARTUP_DIR}/esp32_start.o
+		${PX4_STARTUP_DIR}/esp32_wdt.o
+		# ${PX4_STARTUP_DIR}/esp32_cpustart.o
+		${PX4_STARTUP_DIR}/esp_wifi_utils.o
+		${PX4_STARTUP_DIR}/esp_wifi_api.o
+		${PX4_STARTUP_DIR}/esp_wpa_main.o
+		${PX4_STARTUP_DIR}/esp32_wifi_adapter.o
 
-	# ${PX4_STARTUP_DIR}/esp32_clockconfig.o
-	)
-
-	set(NUTTX_NETWORK_LIB
-	# ${PX4_STARTUP_DIR}/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libbtdm_app.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_coex/lib/esp32/libcoexist.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libcore.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libespnow.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libnet80211.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_phy/lib/esp32/libphy.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libpp.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_phy/lib/esp32/librtc.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libsmartconfig.a
-	${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libwapi.a
-	# ${PX4_STARTUP_DIR}/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libwpa_supplicant.a
-	)
-
-	# NUTTX_STARTUP_OBJS are individual .o's produced as a side effect of NuttX's own
-	# recursive `make -C arch/xtensa/src` build (driven by the nuttx_arch_build custom
-	# command in platforms/nuttx/NuttX/CMakeLists.txt), not by any CMake compile rule of
-	# their own. Declaring them as the OUTPUT of a (no-op) custom command that DEPENDS on
-	# nuttx_arch_build gives ninja a real producing edge for each path, so it runs that
-	# recursive build - which is what actually leaves these files populated on disk -
-	# before linking them, instead of linking whatever stale/absent file happens to be
-	# there yet (which is what the old touch-at-configure-time approach could do).
-	# NOTE: deliberately not marked EXTERNAL_OBJECT - CMake's ninja generator treats
-	# that property as "this file is provided from outside the build, never generate
-	# a producing rule for it", which would silently defeat the add_custom_command
-	# below (ninja would then require the file to already exist on disk, exactly the
-	# "missing and no known rule to make it" failure this is meant to avoid).
-	set_source_files_properties(
-		${NUTTX_STARTUP_OBJS}
-		PROPERTIES
-		GENERATED true)
-	add_custom_command(
-		OUTPUT ${NUTTX_STARTUP_OBJS}
-		COMMAND ${CMAKE_COMMAND} -E true
-		DEPENDS nuttx_arch_build)
-	# A bare file path embedded in target_link_libraries() is just text on the link
-	# command line as far as CMake's own dependency graph is concerned - it doesn't
-	# make CMake treat the custom command above as "wanted", so ninja would still
-	# prune its rule. An add_custom_target DEPENDS-ing on these paths forces CMake to
-	# actually emit a producing edge for them, and add_dependencies makes px4 wait on it.
-	# (SIMPLE_BOOT and legacy boot are mutually exclusive if/else branches, so reusing
-	# this target name across both is safe - only one is ever configured at a time.)
-	add_custom_target(nuttx_esp32_startup_objs DEPENDS ${NUTTX_STARTUP_OBJS})
-	add_dependencies(px4 nuttx_esp32_startup_objs)
-
-	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
-
-	target_link_libraries(nuttx_arch
-			INTERFACE
-			drivers_board
-			arch_hrt
-			arch_board_reset
-			-Wl,--start-group
-			${NUTTX_NETWORK_LIB}
-			-Wl,--end-group
-
-	)
-
-	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
-	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
-	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_net)
-	target_link_libraries(nuttx_net INTERFACE nuttx_mm)
-
-	target_link_libraries(px4 PRIVATE
-		-nostartfiles
-		# --entry=esp32_start
-		-nodefaultlibs
-		-nostdlib
-		-nostdinc++
-		-mlongcalls
-		-fno-exceptions
-		-fno-rtti
-		-Wl,--cref
-		-Wl,-wrap,bootloader_print_banner
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libgcc.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
-		-L${NUTTX_CONFIG_DIR_CYG}/scripts
-		-Wl,-Map=${PX4_CONFIG}.map
-		-Wl,--gc-sections
-
-		-Wl,--start-group
-			${NUTTX_STARTUP_OBJS}
-			${nuttx_libs}
-			${NUTTX_NETWORK_LIB}
-		# /home/henry/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/14.2.0/esp32/libgcc.a
-		# /home/henry/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/xtensa-esp-elf/lib/esp32/libm.a
-		-Wl,--end-group
-		m
-		gcc
+		# ${PX4_STARTUP_DIR}/esp32_clockconfig.o
 		)
+
+		set(NUTTX_NETWORK_LIB
+		# ${PX4_STARTUP_DIR}/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libbtdm_app.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_coex/lib/esp32/libcoexist.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libcore.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libespnow.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libnet80211.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_phy/lib/esp32/libphy.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libpp.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_phy/lib/esp32/librtc.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libsmartconfig.a
+		${PX4_STARTUP_DIR}/esp32/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libwapi.a
+		# ${PX4_STARTUP_DIR}/esp-hal-3rdparty/components/esp_wifi/lib/esp32/libwpa_supplicant.a
+		)
+
+		# NUTTX_STARTUP_OBJS are individual .o's produced as a side effect of NuttX's own
+		# recursive `make -C arch/xtensa/src` build (driven by the nuttx_arch_build custom
+		# command in platforms/nuttx/NuttX/CMakeLists.txt), not by any CMake compile rule of
+		# their own. Declaring them as the OUTPUT of a (no-op) custom command that DEPENDS on
+		# nuttx_arch_build gives ninja a real producing edge for each path, so it runs that
+		# recursive build - which is what actually leaves these files populated on disk -
+		# before linking them, instead of linking whatever stale/absent file happens to be
+		# there yet (which is what the old touch-at-configure-time approach could do).
+		# NOTE: deliberately not marked EXTERNAL_OBJECT - CMake's ninja generator treats
+		# that property as "this file is provided from outside the build, never generate
+		# a producing rule for it", which would silently defeat the add_custom_command
+		# below (ninja would then require the file to already exist on disk, exactly the
+		# "missing and no known rule to make it" failure this is meant to avoid).
+		set_source_files_properties(
+			${NUTTX_STARTUP_OBJS}
+			PROPERTIES
+			GENERATED true)
+		add_custom_command(
+			OUTPUT ${NUTTX_STARTUP_OBJS}
+			COMMAND ${CMAKE_COMMAND} -E true
+			DEPENDS nuttx_arch_build)
+		# A bare file path embedded in target_link_libraries() is just text on the link
+		# command line as far as CMake's own dependency graph is concerned - it doesn't
+		# make CMake treat the custom command above as "wanted", so ninja would still
+		# prune its rule. An add_custom_target DEPENDS-ing on these paths forces CMake to
+		# actually emit a producing edge for them, and add_dependencies makes px4 wait on it.
+		# (SIMPLE_BOOT and legacy boot are mutually exclusive if/else branches, so reusing
+		# this target name across both is safe - only one is ever configured at a time.)
+		add_custom_target(nuttx_esp32_startup_objs DEPENDS ${NUTTX_STARTUP_OBJS})
+		add_dependencies(px4 nuttx_esp32_startup_objs)
+
+		target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
+
+		target_link_libraries(nuttx_arch
+				INTERFACE
+				drivers_board
+				arch_hrt
+				arch_board_reset
+				-Wl,--start-group
+				${NUTTX_NETWORK_LIB}
+				-Wl,--end-group
+
+		)
+
+		target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
+		target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
+		target_link_libraries(nuttx_xx INTERFACE nuttx_c)
+		target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_net)
+		target_link_libraries(nuttx_net INTERFACE nuttx_mm)
+
+		target_link_libraries(px4 PRIVATE
+			-nostartfiles
+			# --entry=esp32_start
+			-nodefaultlibs
+			-nostdlib
+			-nostdinc++
+			-mlongcalls
+			-fno-exceptions
+			-fno-rtti
+			-Wl,--cref
+			-Wl,-wrap,bootloader_print_banner
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_sections.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libgcc.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
+			-L${NUTTX_CONFIG_DIR_CYG}/scripts
+			-Wl,-Map=${PX4_CONFIG}.map
+			-Wl,--gc-sections
+
+			-Wl,--start-group
+				${NUTTX_STARTUP_OBJS}
+				${nuttx_libs}
+				${NUTTX_NETWORK_LIB}
+			-Wl,--end-group
+			m
+			gcc
+			)
 
 		if(NOT USE_LD_GOLD)
 			target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
@@ -392,97 +390,96 @@ if(CONFIG_ESPRESSIF_SIMPLE_BOOT)
 			COMMAND du ${PX4_BINARY_OUTPUT} -h
 			DEPENDS px4
 		)
-else()
-	message("Building for ESP32 with Legacy bootloader")
+	else()
+		message(STATUS "Building for ESP32 with Legacy bootloader")
 
-	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
+		set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
 
-	set(NUTTX_STARTUP_OBJS
-	${PX4_STARTUP_DIR}/xtensa_vectors.o
-	${PX4_STARTUP_DIR}/xtensa_window_vector.o
-	${PX4_STARTUP_DIR}/xtensa_windowspill.o
-	${PX4_STARTUP_DIR}/xtensa_int_handlers.o
-	${PX4_STARTUP_DIR}/xtensa_user_handler.o
-	${PX4_STARTUP_DIR}/xtensa_initialize.o
-	${PX4_STARTUP_DIR}/xtensa_initialstate.o
-	${PX4_STARTUP_DIR}/esp32_start.o
-	${PX4_STARTUP_DIR}/esp32_wdt.o
-	)
-
-	# See the SIMPLE_BOOT branch above: these are produced by NuttX's own recursive
-	# arch/xtensa/src build (nuttx_arch_build), not a CMake compile rule, so declare them
-	# as the OUTPUT of a no-op command DEPENDS-ing on that target to give ninja a real
-	# producing edge, guaranteeing they're actually (re)built before link.
-	# NOTE: deliberately not marked EXTERNAL_OBJECT - CMake's ninja generator treats
-	# that property as "this file is provided from outside the build, never generate
-	# a producing rule for it", which would silently defeat the add_custom_command
-	# below (ninja would then require the file to already exist on disk, exactly the
-	# "missing and no known rule to make it" failure this is meant to avoid).
-	set_source_files_properties(
-		${NUTTX_STARTUP_OBJS}
-		PROPERTIES
-		GENERATED true)
-	add_custom_command(
-		OUTPUT ${NUTTX_STARTUP_OBJS}
-		COMMAND ${CMAKE_COMMAND} -E true
-		DEPENDS nuttx_arch_build)
-	# A bare file path embedded in target_link_libraries() is just text on the link
-	# command line as far as CMake's own dependency graph is concerned - it doesn't
-	# make CMake treat the custom command above as "wanted", so ninja would still
-	# prune its rule. An add_custom_target DEPENDS-ing on these paths forces CMake to
-	# actually emit a producing edge for them, and add_dependencies makes px4 wait on it.
-	# (SIMPLE_BOOT and legacy boot are mutually exclusive if/else branches, so reusing
-	# this target name across both is safe - only one is ever configured at a time.)
-	add_custom_target(nuttx_esp32_startup_objs DEPENDS ${NUTTX_STARTUP_OBJS})
-	add_dependencies(px4 nuttx_esp32_startup_objs)
-
-	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
-
-	target_link_libraries(nuttx_arch
-			INTERFACE
-			drivers_board
-			arch_hrt
-			arch_board_reset
-	)
-
-	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
-	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
-	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
-	target_link_libraries(px4 PRIVATE
-		-nostartfiles
-		-nodefaultlibs
-		-nostdlib
-		-nostdinc++
-		-mlongcalls
-		-fno-exceptions
-		-fno-rtti
-		-Wl,--cref
-		# -L${WIRELESS_LIB}
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}legacy_sections.ld
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libgcc.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
-		-Wl,-Map=${PX4_CONFIG}.map
-		-Wl,--warn-common
-		-Wl,--gc-sections
-
-		-Wl,--start-group
-			${NUTTX_STARTUP_OBJS}
-			${nuttx_libs}
-		-Wl,--end-group
-
-		m
-		gcc
+		set(NUTTX_STARTUP_OBJS
+		${PX4_STARTUP_DIR}/xtensa_vectors.o
+		${PX4_STARTUP_DIR}/xtensa_window_vector.o
+		${PX4_STARTUP_DIR}/xtensa_windowspill.o
+		${PX4_STARTUP_DIR}/xtensa_int_handlers.o
+		${PX4_STARTUP_DIR}/xtensa_user_handler.o
+		${PX4_STARTUP_DIR}/xtensa_initialize.o
+		${PX4_STARTUP_DIR}/xtensa_initialstate.o
+		${PX4_STARTUP_DIR}/esp32_start.o
+		${PX4_STARTUP_DIR}/esp32_wdt.o
 		)
 
-		target_link_options(px4 PRIVATE "-Wl,--gc-sections")
+		# See the SIMPLE_BOOT branch above: these are produced by NuttX's own recursive
+		# arch/xtensa/src build (nuttx_arch_build), not a CMake compile rule, so declare them
+		# as the OUTPUT of a no-op command DEPENDS-ing on that target to give ninja a real
+		# producing edge, guaranteeing they're actually (re)built before link.
+		# NOTE: deliberately not marked EXTERNAL_OBJECT - CMake's ninja generator treats
+		# that property as "this file is provided from outside the build, never generate
+		# a producing rule for it", which would silently defeat the add_custom_command
+		# below (ninja would then require the file to already exist on disk, exactly the
+		# "missing and no known rule to make it" failure this is meant to avoid).
+		set_source_files_properties(
+			${NUTTX_STARTUP_OBJS}
+			PROPERTIES
+			GENERATED true)
+		add_custom_command(
+			OUTPUT ${NUTTX_STARTUP_OBJS}
+			COMMAND ${CMAKE_COMMAND} -E true
+			DEPENDS nuttx_arch_build)
+		# A bare file path embedded in target_link_libraries() is just text on the link
+		# command line as far as CMake's own dependency graph is concerned - it doesn't
+		# make CMake treat the custom command above as "wanted", so ninja would still
+		# prune its rule. An add_custom_target DEPENDS-ing on these paths forces CMake to
+		# actually emit a producing edge for them, and add_dependencies makes px4 wait on it.
+		# (SIMPLE_BOOT and legacy boot are mutually exclusive if/else branches, so reusing
+		# this target name across both is safe - only one is ever configured at a time.)
+		add_custom_target(nuttx_esp32_startup_objs DEPENDS ${NUTTX_STARTUP_OBJS})
+		add_dependencies(px4 nuttx_esp32_startup_objs)
+
+		target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
+
+		target_link_libraries(nuttx_arch
+				INTERFACE
+				drivers_board
+				arch_hrt
+				arch_board_reset
+		)
+
+		target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
+		target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
+		target_link_libraries(nuttx_xx INTERFACE nuttx_c)
+		target_link_libraries(nuttx_fs INTERFACE nuttx_c)
+		target_link_libraries(px4 PRIVATE
+			-nostartfiles
+			-nodefaultlibs
+			-nostdlib
+			-nostdinc++
+			-mlongcalls
+			-fno-exceptions
+			-fno-rtti
+			-Wl,--cref
+			# -L${WIRELESS_LIB}
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}flat_memory.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}legacy_sections.ld
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.api.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libc-funcs.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.libgcc.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-data.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.newlib-reent-funcs.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.rom.syscalls.ld.tmp
+			-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.peripherals.ld.tmp
+			-Wl,-Map=${PX4_CONFIG}.map
+			-Wl,--warn-common
+			-Wl,--gc-sections
+
+			-Wl,--start-group
+				${NUTTX_STARTUP_OBJS}
+				${nuttx_libs}
+			-Wl,--end-group
+
+			m
+			gcc
+			)
+
 		target_link_options(px4 PRIVATE "-Wl,--strip-debug")
 		target_link_options(px4 PRIVATE "-Wl,--orphan-handling=warn")
 
@@ -501,11 +498,7 @@ else()
 			DEPENDS px4
 		)
 
-
-
-
-
-endif()
+	endif()
 else()
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
