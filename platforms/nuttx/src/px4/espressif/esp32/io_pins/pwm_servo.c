@@ -60,6 +60,8 @@
 
 #include <px4_arch/io_timer.h>
 
+#include <nuttx/bits.h>
+
 // #include <esp32_ledc.h>
 #include "xtensa.h"
 
@@ -78,11 +80,6 @@
 #define LEDC_LSCH0_DUTY_REG          (DR_REG_LEDC_BASE + 0x00A8)
 #define LEDC_INT_ENA_REG          (DR_REG_LEDC_BASE + 0x0188)
 #define LEDC_CONF_REG          (DR_REG_LEDC_BASE + 0x0190)
-
-#define BIT(nr)                 (1UL << (nr))
-
-#define putreg32(v,a)     (*(volatile uint32_t *)(a) = (v))
-
 
 #define LEDC_SIG_OUT_EN_LSCH0  1 << 2
 #define LEDC_PARA_UP_LSCH0  1 << 4
