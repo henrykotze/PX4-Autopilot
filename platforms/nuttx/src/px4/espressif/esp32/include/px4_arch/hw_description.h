@@ -41,12 +41,6 @@
 // #include "hardware/esp32_soc.h"
 
 #include <px4_platform_common/constexpr_util.h>
-#define DR_REG_PWM1_BASE                        0x6002C000
-// NOTE: unverified against the ESP32 TRM; kept distinct from DR_REG_PWM1_BASE
-// only so each Timer below maps to a unique address. Currently unused:
-// esp32's io_timer_hw_description.h hardcodes ret.base directly instead of
-// calling timerBaseRegister() below.
-#define DR_REG_PWM_BASE                         (DR_REG_PWM1_BASE - 0x1000)
 /*
  * Timers
  */
@@ -74,21 +68,6 @@ struct TimerChannel {
 	Timer timer;
 	Channel channel;
 };
-}
-
-static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
-{
-	switch (timer) {
-	case Timer::Timer0: return DR_REG_PWM_BASE + 0x04;
-
-	case Timer::Timer1: return DR_REG_PWM1_BASE + 0x04;
-
-	case Timer::Timer2: return DR_REG_PWM1_BASE + 0x04;
-
-	case Timer::Timer3: return DR_REG_PWM1_BASE + 0x04;
-	}
-
-	return 0;
 }
 
 /*
