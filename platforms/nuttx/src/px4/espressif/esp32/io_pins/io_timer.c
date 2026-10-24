@@ -158,6 +158,8 @@ static uint32_t get_timer_channels(unsigned timer)
 		return 0;
 	}
 
+	// cache_valid is a local static variables. Thus we only check a timer channels
+	// once and only once when it has been requested by
 	if (!cache_valid[timer]) {
 		uint32_t channels = 0;
 
@@ -339,11 +341,18 @@ static void timer_set_rate(unsigned timer, unsigned rate)
 
 int io_timer_init_timer(unsigned timer, io_timer_channel_mode_t mode)
 {
+	// simply check if the timer we want to allocate is less than the maximum number of
+	// timers available
 	if (validate_timer_index(timer) != 0) {
 		return -EINVAL;
 	}
 
+	// timer_allocation, holds the type of timer is used for: Ununsed, PWM, DSHOT
+	// It is initialised as IOTimerChanMode_NotUsed  for all timers
 	io_timer_channel_mode_t previous_mode = timer_allocations[timer];
+	// here we simply check is the timer's mode is IOTimerChanMode_NotUsed, or
+	// if we reallocating the same mode to the timer. We allocate it if its the case
+	// ie: timer_allocation[timer] = mode
 	int rv = io_timer_allocate_timer(timer, mode);
 
 	/* Do this only once per timer */
@@ -374,6 +383,8 @@ int io_timer_init_timer(unsigned timer, io_timer_channel_mode_t mode)
 
 int io_timer_set_pwm_rate(unsigned timer, unsigned rate)
 {
+	// simple check to determine if we have allocated the timer, and the timer selected is within the number
+	// of timers available
 	if (validate_timer_index(timer) != 0 || timer_allocations[timer] != IOTimerChanMode_PWMOut) {
 		return -EINVAL;
 	}
@@ -395,11 +406,15 @@ int io_timer_set_pwm_rate(unsigned timer, unsigned rate)
 int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 			   channel_handler_t channel_handler, void *context)
 {
+	// We can only support PWM
 	if (mode != IOTimerChanMode_PWMOut) {
 		/* This LEDC-based backend only implements PWM output channels */
 		return -EINVAL;
 	}
 
+	// here we check, whether the gpio allocated to the channel is set as
+	// gpio_out, we also check whether the channel is allocated to some timer which is
+	// allowed
 	if (io_timer_validate_channel_index(channel) != 0) {
 		return -EINVAL;
 	}
@@ -438,11 +453,17 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	if (mode != IOTimerChanMode_PWMOut) {
 		return -EINVAL;
 	}
-
+	// if masks == IO_TIMER_ALL_MODES_CHANNELS, it means we are requesting for all the pins
+	// on the desired mode
 	if (masks == IO_TIMER_ALL_MODES_CHANNELS) {
+		// we fetch the channel mask with regards to what "pins" are
+		// allocated to the desired mode
 		masks = channel_allocations[mode];
 
 	} else {
+		// if our masks != IO_TIMER_ALL_MODES_CHANNELS, then we are requesting
+		// a specific set of pins, and thus we AND our mask to the actually pins which
+		// are configured on the desired mode
 		masks &= channel_allocations[mode];
 	}
 
