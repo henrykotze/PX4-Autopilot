@@ -114,7 +114,7 @@ make espressif_esp32_wifi_ap
 
 This target has been built and tested with:
 
-- **Compiler (`xtensa-esp32-elf-gcc`):** TODO
+- **Compiler (`xtensa-esp32-elf-gcc`):** crosstool-NG esp-14.2.0_20241119, GCC 14.2.0
 - **esptool:** v4.11.dev2
 
 ## Flashing
