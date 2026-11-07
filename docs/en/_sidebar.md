@@ -211,6 +211,7 @@
       - [ZenFC H743](/flight_controller/zenfc_h743.md)
     - [Experimental Autopilots](/flight_controller/autopilot_experimental.md)
       - [BeagleBone Blue](/flight_controller/beaglebone_blue.md)
+      - [ESP32](/flight_controller/espressif_esp32.md)
       - [Raspberry Pi 2/3 Navio2](/flight_controller/raspberry_pi_navio2.md)
       - [Raspberry Pi 2/3/4 PilotPi](/flight_controller/raspberry_pi_pilotpi.md)
         - [PilotPi with Raspberry Pi OS](/flight_controller/raspberry_pi_pilotpi_rpios.md)
