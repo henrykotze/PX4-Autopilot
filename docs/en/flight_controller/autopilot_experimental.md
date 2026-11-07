@@ -14,6 +14,7 @@ This category is for experimental autopilots (and autopilot "platforms") that ar
 
 - [AIFoundry Erbium](../flight_controller/aifoundry_erbium.md)
 - [BeagleBone Blue](../flight_controller/beaglebone_blue.md)
+- [ESP32](../flight_controller/espressif_esp32.md)
 - [Raspberry Pi 2/3 Navio2](../flight_controller/raspberry_pi_navio2.md)
 - [Raspberry Pi 2/3/4 PilotPi Shield](../flight_controller/raspberry_pi_pilotpi.md)
 
